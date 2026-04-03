@@ -3,6 +3,9 @@ compatibility_date = "2026-04-04"
 pages_build_output_dir = "dist"
 main = "src/index.ts"
 
+[build]
+command = "npm run build"
+
 [assets]
 directory = "./dist"
 binding = "STATIC_ASSETS"
