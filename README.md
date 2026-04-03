@@ -96,6 +96,15 @@ Without `AUTH_KV`, verify endpoints still work from env vars, but change-passwor
 4. Update `wrangler.toml` with KV namespace IDs for local wrangler workflows.
 5. (Optional local dev) copy `.dev.vars.example` to `.dev.vars` and fill values.
 
+### Deploy command compatibility
+
+If your Cloudflare pipeline uses `wrangler deploy`, this repo now includes:
+
+- Worker entry: `src/index.ts`
+- Static assets config: `[assets] directory = "./dist"`
+
+So the same deployment can serve frontend assets and `/api/*` routes together.
+
 📂 Project Structure
 mox-vox-website/
 │
