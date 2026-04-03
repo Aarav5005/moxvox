@@ -5,7 +5,7 @@ main = "src/index.ts"
 
 [assets]
 directory = "./dist"
-binding = "ASSETS"
+binding = "STATIC_ASSETS"
 
 # Cloudflare Pages Functions KV binding for persistent admin password changes.
 # Replace the IDs below after creating the KV namespace in Cloudflare.

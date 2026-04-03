@@ -12,7 +12,7 @@ type StaticAssetsBinding = {
 };
 
 type WorkerEnv = EnvBindings & {
-  ASSETS: StaticAssetsBinding;
+  STATIC_ASSETS: StaticAssetsBinding;
 };
 
 const apiHandlers: Record<string, (context: RequestContext) => Promise<Response>> = {
@@ -42,6 +42,6 @@ export default {
       return handler({ request, env });
     }
 
-    return env.ASSETS.fetch(request);
+    return env.STATIC_ASSETS.fetch(request);
   },
 };
