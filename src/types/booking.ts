@@ -1,0 +1,36 @@
+export type Booking = {
+  id?: number | string;
+  booking_id?: number | string;
+  uuid?: string;
+  customer_name: string;
+  phone: string;
+  date_of_birth: string | null;
+  anniversary: string | null;
+  party_date: string;
+  party_time: string;
+  starter_time: string | null;
+  maincourse_time: string | null;
+  guests: number;
+  food_type: string;
+  spicy_level: string;
+  package_type: string;
+  venue_type: string;
+  occasion: string;
+  dj_required: string;
+  jockey_required: string;
+  dj_time: string | null;
+  other_details: string;
+  menu_items: string[];
+  billing_pax: number;
+  billing_dj: number;
+  billing_decor: number;
+  billing_gst: number;
+  billing_g_amount: number;
+  billing_advance: number;
+  billing_total_amount: number;
+  billing_due_amount: number;
+  payment_mode: string | null;
+  created_at: string;
+};
+
+export type BookingPayload = Omit<Booking, "id" | "booking_id" | "uuid" | "created_at">;

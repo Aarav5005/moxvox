@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const navLinks = [
   { name: "Home", href: "#" },
@@ -30,7 +31,7 @@ const Navbar = () => {
           isScrolled
             ? "bg-charcoal-dark/95 backdrop-blur-md border-b border-border shadow-sm"
             : "bg-charcoal-dark/20 backdrop-blur-sm"
-        }`}
+        } relative`}
       >
         <div className="container-narrow mx-auto pl-4 pr-0 sm:pl-6 sm:pr-0 lg:pl-8 lg:pr-0">
           <div className="flex items-center justify-between h-14 sm:h-18">
@@ -52,27 +53,42 @@ const Navbar = () => {
               >
                 Call Now
               </a>
+              <Link
+                to="/admin/login"
+                className="px-3 py-1 gradient-gold text-primary-foreground font-body text-xs uppercase tracking-wider rounded-sm transition-all duration-300 hover:shadow-gold"
+              >
+                Admin Login
+              </Link>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="font-body text-sm uppercase tracking-wider text-cream/80 hover:text-gold hover:border-b-2 hover:border-gold transition-all duration-300"
-                >
-                  {link.name}
-                </a>
-              ))}
-              <div className="flex items-center gap-2">
-                <a
-                  href="tel:+919461761555"
-                  className="px-6 py-2 gradient-gold text-primary-foreground font-body text-sm uppercase tracking-wider rounded-sm transition-all duration-300 hover:shadow-gold"
-                >
-                  Call Now
-                </a>
+            <div className="hidden md:flex flex-1 items-center">
+              <div className="flex items-center gap-8 mx-auto">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="font-body text-sm uppercase tracking-wider text-cream/80 hover:text-gold hover:border-b-2 hover:border-gold transition-all duration-300"
+                  >
+                    {link.name}
+                  </a>
+                ))}
               </div>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 absolute right-4 sm:right-6 lg:right-8 top-1/2 -translate-y-1/2">
+              <a
+                href="tel:+919461761555"
+                className="px-6 py-2 gradient-gold text-primary-foreground font-body text-sm uppercase tracking-wider rounded-sm transition-all duration-300 hover:shadow-gold"
+              >
+                Call Now
+              </a>
+              <Link
+                to="/admin/login"
+                className="px-6 py-2 gradient-gold text-primary-foreground font-body text-sm uppercase tracking-wider rounded-sm transition-all duration-300 hover:shadow-gold"
+              >
+                Admin Login
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -125,6 +141,13 @@ const Navbar = () => {
               >
                 Call Now
               </a>
+              <Link
+                to="/admin/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="mt-4 px-8 py-3 gradient-gold text-primary-foreground font-body text-sm uppercase tracking-wider rounded-sm"
+              >
+                Admin Login
+              </Link>
             </div>
           </motion.div>
         )}

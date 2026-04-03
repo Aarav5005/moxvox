@@ -1,0 +1,13 @@
+# Copy this file to .dev.vars for local Cloudflare Pages Functions dev.
+# Do not commit real secrets.
+
+ADMIN_EMAIL=
+ADMIN_PASSWORD=
+ADMIN_EDIT_EMAIL=
+ADMIN_EDIT_PASSWORD=
+ADMIN_SESSION_SECRET=
+GREENTICK_API_KEY=
+GREENTICK_API_URL=
+TERMS_LINK=https://www.mox-vox.online/terms.html
+WHATSAPP_FROM_NUMBER=
+WHATSAPP_TEMPLATE_NAME=

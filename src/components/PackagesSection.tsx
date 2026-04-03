@@ -16,11 +16,11 @@ interface PackageItem {
 const packages: PackageItem[] = [
   {
     icon: <PartyPopper className="w-8 h-8" />,
-    title: "Birthday Package",
-    price: "₹469 + GST",
+    title: "Snack Attack",
+    price: "₹479 + GST",
     type: "per person",
-    minPax: "Perfect for joyful birthday celebrations",
-    whatsappMessage: "Hi%2C%20I%E2%80%99m%20interested%20in%20booking%20a%20Birthday%20celebration%20at%20Mox%20Vox.%20Please%20share%20details%20and%20availability.",
+    minPax: "Perfect for quick bites and casual celebrations",
+    whatsappMessage: "Hi%2C%20I%E2%80%99m%20interested%20in%20booking%20Snack%20Attack%20package%20at%20Mox%20Vox.%20Please%20share%20details%20and%20availability.",
     features: [
       "Unlimited package",
       "2 Welcome Drinks",
@@ -32,11 +32,11 @@ const packages: PackageItem[] = [
   },
   {
     icon: <Building2 className="w-8 h-8" />,
-    title: "Corporate Package",
-    price: "₹469 + GST",
+    title: "Social Luxe Experience",
+    price: "₹479 + GST",
     type: "per person",
-    minPax: "Ideal for professional and team gatherings",
-    whatsappMessage: "Hi%2C%20I%E2%80%99m%20interested%20in%20a%20Corporate%20event%20booking%20at%20Mox%20Vox.%20Kindly%20share%20package%20details.",
+    minPax: "Ideal for social gatherings and premium experiences",
+    whatsappMessage: "Hi%2C%20I%E2%80%99m%20interested%20in%20booking%20Social%20Luxe%20Experience%20at%20Mox%20Vox.%20Kindly%20share%20package%20details.",
     features: [
       "Unlimited package",
       "1 Welcome Drink",
@@ -55,11 +55,11 @@ const packages: PackageItem[] = [
   },
   {
     icon: <Users className="w-8 h-8" />,
-    title: "Family Package",
-    price: "₹569 + GST",
+    title: "Grand Affair",
+    price: "₹479 + GST",
     type: "per person",
-    minPax: "Designed for family get-togethers",
-    whatsappMessage: "Hi%2C%20I%E2%80%99m%20planning%20a%20family%20get-together%20at%20Mox%20Vox.%20Please%20share%20more%20information.",
+    minPax: "Designed for grand celebrations and special occasions",
+    whatsappMessage: "Hi%2C%20I%E2%80%99m%20interested%20in%20booking%20Grand%20Affair%20package%20at%20Mox%20Vox.%20Please%20share%20more%20information.",
     features: [
       "Unlimited package",
       "2 Welcome Drinks",

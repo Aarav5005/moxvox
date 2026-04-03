@@ -44,6 +44,58 @@ SVG Assets for logos & icons
 
 Netlify / Vercel Ready
 
+Note: The current admin login and WhatsApp API flows use server routes (`/api/*`) wired through the runtime server.
+Do not deploy as static files only. Deploy with a Node/server runtime that serves these API endpoints.
+
+## Cloudflare Deployment
+
+This repository now includes Cloudflare Pages Functions under `functions/api/*` for:
+
+- `/api/verify-admin`
+- `/api/change-admin-password`
+- `/api/verify-admin-edit`
+- `/api/change-admin-edit-password`
+- `/api/verify-admin-session`
+- `/api/logout-admin`
+- `/api/send-whatsapp`
+
+### Required Cloudflare environment variables
+
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `ADMIN_EDIT_EMAIL`
+- `ADMIN_EDIT_PASSWORD`
+- `ADMIN_SESSION_SECRET` (recommended)
+- `GREENTICK_API_KEY`
+- `GREENTICK_API_URL`
+- `WHATSAPP_FROM_NUMBER`
+- `WHATSAPP_TEMPLATE_NAME`
+- `TERMS_LINK`
+
+### Optional KV binding for password persistence
+
+For change-password endpoints to persist updates in Cloudflare, bind KV namespace:
+
+- Binding name: `AUTH_KV`
+- Keys used:
+	- `ADMIN_EMAIL`
+	- `ADMIN_PASSWORD`
+	- `ADMIN_EDIT_EMAIL`
+	- `ADMIN_EDIT_PASSWORD`
+
+Without `AUTH_KV`, verify endpoints still work from env vars, but change-password endpoints cannot persist new credentials.
+
+### Quick setup steps (Cloudflare)
+
+1. Create KV namespace in Cloudflare Dashboard:
+	- Storage & Databases -> KV -> Create namespace
+2. Bind namespace to Pages project:
+	- Pages -> Your project -> Settings -> Functions -> KV namespace bindings
+	- Binding name: `AUTH_KV`
+3. Add all required environment variables in Pages project settings (Production + Preview).
+4. Update `wrangler.toml` with KV namespace IDs for local wrangler workflows.
+5. (Optional local dev) copy `.dev.vars.example` to `.dev.vars` and fill values.
+
 📂 Project Structure
 mox-vox-website/
 │

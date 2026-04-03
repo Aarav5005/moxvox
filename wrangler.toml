@@ -1,0 +1,10 @@
+name = "mox-vox-website"
+compatibility_date = "2026-04-04"
+pages_build_output_dir = "dist"
+
+# Cloudflare Pages Functions KV binding for persistent admin password changes.
+# Replace the IDs below after creating the KV namespace in Cloudflare.
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "REPLACE_WITH_PRODUCTION_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
