@@ -87,13 +87,13 @@ export default function Dashboard() {
   }, [bookings, now]);
 
   return (
-    <main className="min-h-screen bg-[#060606] bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.14),transparent_40%),linear-gradient(180deg,#080808_0%,#050505_100%)] pb-10 pt-4 sm:pt-6">
-      <div className="mx-auto max-w-[1000px] space-y-6 px-4 sm:px-6">
-        <header className="relative rounded-2xl bg-[rgba(255,255,255,0.03)] px-5 py-5 shadow-[0_20px_50px_rgba(0,0,0,0.45)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5">
+    <main className="min-h-screen bg-[#060606] bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.14),transparent_40%),linear-gradient(180deg,#080808_0%,#050505_100%)] pb-0">
+      <header className="sticky top-0 z-40 w-full bg-[#060606]/85 backdrop-blur-md pt-4 pb-4 sm:pt-6 sm:pb-5">
+        <div className="relative mx-auto max-w-[1000px] px-4 sm:px-6">
           <img
             src="/mox-vox-logo.svg"
             alt="MoxVox logo"
-            className="absolute right-4 top-2 h-16 w-16 object-contain sm:right-5 sm:top-2 sm:h-20 sm:w-20"
+            className="absolute right-8 -top-3 h-16 w-16 object-contain sm:-top-5 sm:right-12 sm:h-20 sm:w-20"
           />
           <h1 className="font-display text-2xl italic tracking-[0.07em] text-[#D4AF37] sm:text-3xl">Booking Dashboard</h1>
           <nav className="mt-3 grid grid-cols-3 gap-1 text-center text-[13px] font-semibold sm:flex sm:justify-start sm:gap-4 sm:text-sm">
@@ -131,7 +131,10 @@ export default function Dashboard() {
               Event History
             </button>
           </nav>
-        </header>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-[1000px] space-y-2 px-4 pt-4 sm:px-6 sm:pt-6">
 
         {activeView === "add-booking" ? <BookingForm onSubmitBooking={addBooking} /> : null}
 

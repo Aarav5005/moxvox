@@ -4,6 +4,7 @@ import { Eye, EyeOff, FileText, ChevronUp, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Booking } from "@/types/booking";
 import { TimePicker } from "./TimePicker";
+import { TimeRangePicker } from "./TimeRangePicker";
 import { convertTo12Hour, combineTo12HourRange, parse12HourRange } from "@/lib/timeUtils";
 
 type BookingDetailsModalProps = {
@@ -176,6 +177,7 @@ export default function BookingDetailsModal({
       });
       setIsEditing(false);
       setMenuItemsInput("");
+      onClose();
     } finally {
       setIsSaving(false);
     }
@@ -200,18 +202,10 @@ export default function BookingDetailsModal({
   };
 
   const handleProtectedEdit = () => {
-    if (syncVerificationFromSession()) {
-      handleEdit();
-      return;
-    }
     openVerificationModal("edit");
   };
 
   const handleProtectedDelete = () => {
-    if (syncVerificationFromSession()) {
-      void handleDelete();
-      return;
-    }
     openVerificationModal("delete");
   };
 
@@ -679,31 +673,12 @@ export default function BookingDetailsModal({
         if (field === "dj_time") {
           return (
             <div className="flex flex-col gap-1 col-span-2">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">DJ Timing</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <p className="text-[10px] uppercase text-white/40">From</p>
-                  <TimePicker
-                    id="dj_start_time"
-                    value={parse12HourRange(editData.dj_time).start24}
-                    onChange={(v) => {
-                      const { end24 } = parse12HourRange(editData.dj_time);
-                      handleChange("dj_time", combineTo12HourRange(v, end24));
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-[10px] uppercase text-white/40">To</p>
-                  <TimePicker
-                    id="dj_end_time"
-                    value={parse12HourRange(editData.dj_time).end24}
-                    onChange={(v) => {
-                      const { start24 } = parse12HourRange(editData.dj_time);
-                      handleChange("dj_time", combineTo12HourRange(start24, v));
-                    }}
-                  />
-                </div>
-              </div>
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">DJ Timing (From - To)</p>
+              <TimeRangePicker
+                id="dj_time"
+                value={editData.dj_time}
+                onChange={(v) => handleChange("dj_time", v)}
+              />
             </div>
           );
         }
@@ -727,6 +702,7 @@ export default function BookingDetailsModal({
             inputMode={field === "phone" ? "numeric" : undefined}
             pattern={field === "phone" ? "[0-9]{10}" : undefined}
             maxLength={field === "phone" ? 10 : undefined}
+            minLength={field === "phone" ? 10 : undefined}
             title={field === "phone" ? "Please enter a 10-digit phone number" : undefined}
             value={editData[field] as string | number}
             onChange={(e) =>
@@ -809,6 +785,8 @@ export default function BookingDetailsModal({
                 "Club",
                 "Cafe",
                 "Rooftop",
+                "PDR - 1",
+                "PDR - 2",
               ])}
               {renderField("Food Type", "food_type", "select", [
                 "Jain Food",
@@ -879,27 +857,27 @@ export default function BookingDetailsModal({
               {renderField("Decor", "billing_decor", "number")}
 
               {/* GST with calculated amount */}
-              <div className="col-span-2 min-w-0">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">GST (%)</p>
-                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+              <div>
+                <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">GST (%)</p>
+                <div>
                   {isEditing && editData ? (
                     <input
                       type="number"
                       value={editData.billing_gst === 0 ? "" : editData.billing_gst}
                       onChange={(e) => handleChange("billing_gst", e.target.value ? Number(e.target.value) : 0)}
-                      className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730] sm:max-w-[140px]"
+                      className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
                     />
                   ) : (
-                    <span className="text-sm font-semibold text-[#efe6cf]">
+                    <p className="text-sm font-semibold text-[#efe6cf]">
                       {displayData.billing_gst === 0 ? "" : displayData.billing_gst}
-                    </span>
+                    </p>
                   )}
                 </div>
               </div>
 
               {renderField("G. Amount", "billing_g_amount", "number")}
               {renderField("Advance", "billing_advance", "number")}
-              {renderField("Payment Mode", "payment_mode", "select", ["Cash", "Card", "UPI", "Q5", "Q7"])}
+              {renderField("Payment Mode", "payment_mode", "select", ["Q5", "Q7", "cash", "card", "upi"])}
               {renderField("Net Due Amount", "billing_due_amount", "number")}
             </div>
           </div>

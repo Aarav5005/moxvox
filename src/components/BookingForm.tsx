@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { BookingPayload } from "@/types/booking";
 import { TimePicker } from "./TimePicker";
+import { TimeRangePicker } from "./TimeRangePicker";
+import { combineTo12HourRange, parse12HourRange } from "@/lib/timeUtils";
 
 type BookingFormProps = {
   onSubmitBooking: (data: BookingPayload) => Promise<boolean>;
@@ -19,6 +21,7 @@ const menuData: Record<string, string[]> = {
     "Lemon Water",
     "Aam Panna",
     "Lemon Ice Tea",
+    "Orange Blossom",
   ],
   Soups: [
     "Cream of Tomato",
@@ -51,6 +54,7 @@ const menuData: Record<string, string[]> = {
     "Fried Rice",
     "Bread Pakoda",
     "Chilly Garlic Noodles",
+    "Pink Sauce Pasta",
   ],
   "Special Starter": [
     "Chilli Garlic Paneer",
@@ -71,6 +75,8 @@ const menuData: Record<string, string[]> = {
     "Hariyali Tandoori Aloo",
     "Masala Tadka Pav",
     "Pav Bhaji",
+    "Coleslaw Sandwich",
+    "Masala Tikka Pav",
   ],
   "Veg Preparation": [
     "Malai Kofta (Veg Gravy)",
@@ -89,6 +95,12 @@ const menuData: Record<string, string[]> = {
     "Sev Tomato",
     "Pindi Chana Masala",
     "Aloo Capsicum",
+    "Veg. Angara",
+    "Corn Palak",
+    "Palak Lahsuni",
+    "Spl. Aloo Gobhi Adaraki",
+    "Punjabi Kofta Curry",
+    "Veg Jaipur",
   ],
   "Paneer Preparation": [
     "Paneer Butter Masala",
@@ -101,8 +113,9 @@ const menuData: Record<string, string[]> = {
     "Paneer Angara",
     "Paneer Do Pyaza",
     "Paneer Khurchan",
+    "Palak Paneer",
   ],
-  "Dal Preparation": ["Dal Fry", "Dal Tadka", "Dal Makhani"],
+  "Dal Preparation": ["Dal Fry", "Dal Tadka", "Dal Makhani", "Rajasthani Kadi"],
   Salad: ["Garden Fresh Salad", "Onion Ring Salad", "Kachumbar Salad", "Corn Pineapple Salad"],
   "Rice Preparation": [
     "Jeera Rice",
@@ -124,7 +137,7 @@ const menuData: Record<string, string[]> = {
     "Missi Roti",
   ],
   Chutney: ["Garlic Sauce", "Mint Sauce", "Schezwan Sauce", "Mayo Sauce", "Garlic Chutney"],
-  "Ice Cream": ["Vanilla", "Strawberry", "Chocolate", "Butterscotch", "Vanilla with Chocolate Sauce"],
+  "Ice Cream": ["Vanilla", "Strawberry", "Chocolate", "Butterscotch", "Vanilla with Chocolate Sauce", "Mix Ice Cream"],
   "Kuch Chatpata Sa": ["Sev Dahi Puri", "Aloo Chana Chaat", "Pani Puri", "Dahi Bhalla", "Bhel Puri"],
   "Curd Preparation": ["Mix Veg Raita", "Boondi Raita", "Onion Raita", "Fry Raita", "Pineapple Raita", "Mint Tadka Raita"],
 };
@@ -159,7 +172,7 @@ const initialForm: BookingPayload = {
   billing_advance: 0,
   billing_total_amount: 0,
   billing_due_amount: 0,
-  payment_mode: "Cash",
+  payment_mode: "cash",
 };
 
 export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
@@ -167,6 +180,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
   const [isGuestsFocused, setIsGuestsFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionKey | null>("customer");
   const [selectedCategory, setSelectedCategory] = useState(menuCategories[0]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -175,9 +189,10 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
   const navbarRef = useRef<HTMLDivElement>(null);
   const occasionOptions = ["Birthday", "Anniversary", "Get Together", "Freshers Party"];
   const foodTypeOptions = ["Jain Food", "Regular Food", "Brahmin Food"];
-  const packageOptions = ["Snack Attack", "Social Luxe Experience", "Grand Affair"];
+  const packageOptions = ["Snack Attack", "Social Luxe Experience", "Grand Affair", "Kitty"];
   const spicyLevelOptions = ["Spicy", "Medium Spicy", "Less Spicy"];
   const venueTypeOptions = ["Club", "Cafe", "Rooftop", "PDR - 1", "PDR - 2"];
+  const supportedPaymentModes = ["Q5", "Q7", "cash", "card", "upi"];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -246,9 +261,14 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         };
       }
 
+      let finalValue = numericFields.has(name) ? Number(value) : value;
+      if (name === "phone") {
+        finalValue = String(value).replace(/\D/g, "").slice(0, 10);
+      }
+
       const updatedData = {
         ...prev,
-        [name]: numericFields.has(name) ? Number(value) : value,
+        [name]: finalValue,
       };
 
       if (["guests", "billing_pax", "billing_dj", "billing_decor", "billing_gst"].includes(name)) {
@@ -275,8 +295,13 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
     });
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setShowConfirmPopup(true);
+  };
+
+  const confirmAndSubmit = async () => {
+    setShowConfirmPopup(false);
     setSubmitting(true);
 
     const cleanedData: BookingPayload = {
@@ -284,6 +309,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
       menu_items: selectedItems,
       date_of_birth: formData.date_of_birth || null,
       anniversary: formData.anniversary || null,
+      party_time: formData.party_time || null,
       starter_time: formData.starter_time || null,
       maincourse_time: formData.maincourse_time || null,
       dj_time: formData.dj_time || null,
@@ -362,9 +388,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         >
           <h3 className="font-display text-[1.65rem] leading-none text-[#D4AF37] sm:text-[1.85rem]">Customer Details</h3>
           <ChevronDown
-            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${
-              activeSection === "customer" ? "rotate-180" : "rotate-0"
-            }`}
+            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${activeSection === "customer" ? "rotate-180" : "rotate-0"
+              }`}
           />
         </button>
 
@@ -407,6 +432,10 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                       onChange={handleChange}
                       className={inputClassName}
                       required
+                      maxLength={10}
+                      minLength={10}
+                      pattern="[0-9]{10}"
+                      title="Please enter a 10-digit phone number"
                     />
                   </div>
 
@@ -434,28 +463,44 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                   <label htmlFor="date_of_birth" className={labelClassName}>
                     Date Of Birth (Optional)
                   </label>
-                  <input
-                    id="date_of_birth"
-                    name="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth ?? ""}
-                    onChange={handleChange}
-                    className={inputClassName}
-                  />
+                  <div className="relative w-full">
+                    <div className={`${inputClassName} flex h-[56px] w-full items-center justify-between`}>
+                      <span className={formData.date_of_birth ? "text-white text-[14.5px] sm:text-[15px]" : "text-[14.5px] text-white/35 sm:text-[15px]"}>
+                         {formData.date_of_birth ? formData.date_of_birth.split('-').reverse().join(' / ') : "DD / MM / YYYY"}
+                      </span>
+                      <svg className="h-[21px] w-[21px] text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </div>
+                    <input
+                      id="date_of_birth"
+                      name="date_of_birth"
+                      type="date"
+                      value={formData.date_of_birth ?? ""}
+                      onChange={handleChange}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label htmlFor="anniversary" className={labelClassName}>
                     Anniversary (Optional)
                   </label>
-                  <input
-                    id="anniversary"
-                    name="anniversary"
-                    type="date"
-                    value={formData.anniversary ?? ""}
-                    onChange={handleChange}
-                    className={inputClassName}
-                  />
+                  <div className="relative w-full">
+                    <div className={`${inputClassName} flex h-[56px] w-full items-center justify-between`}>
+                      <span className={formData.anniversary ? "text-white text-[14.5px] sm:text-[15px]" : "text-[14.5px] text-white/35 sm:text-[15px]"}>
+                         {formData.anniversary ? formData.anniversary.split('-').reverse().join(' / ') : "DD / MM / YYYY"}
+                      </span>
+                      <svg className="h-[21px] w-[21px] text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </div>
+                    <input
+                      id="anniversary"
+                      name="anniversary"
+                      type="date"
+                      value={formData.anniversary ?? ""}
+                      onChange={handleChange}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -471,9 +516,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         >
           <h3 className="font-display text-[1.65rem] leading-none text-[#D4AF37] sm:text-[1.85rem]">Event Details</h3>
           <ChevronDown
-            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${
-              activeSection === "event" ? "rotate-180" : "rotate-0"
-            }`}
+            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${activeSection === "event" ? "rotate-180" : "rotate-0"
+              }`}
           />
         </button>
 
@@ -485,7 +529,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
               animate={{ height: "auto", opacity: 1, y: 0 }}
               exit={{ height: 0, opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="overflow-hidden"
+              className="overflow-visible"
             >
               <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
                 <div>
@@ -500,9 +544,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                     >
                       <span>{formData.food_type}</span>
                       <ChevronDown
-                        className={`h-5 w-5 transition-transform duration-300 ${
-                          openDropdown === "food_type" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
-                        }`}
+                        className={`h-5 w-5 transition-transform duration-300 ${openDropdown === "food_type" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
+                          }`}
                       />
                     </button>
 
@@ -562,9 +605,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                         aria-label="Toggle package options"
                       >
                         <ChevronDown
-                          className={`h-5 w-5 transition-transform duration-300 ${
-                            openDropdown === "package_type" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
-                          }`}
+                          className={`h-5 w-5 transition-transform duration-300 ${openDropdown === "package_type" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
+                            }`}
                         />
                       </button>
                     </div>
@@ -609,9 +651,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                     >
                       <span>{formData.spicy_level}</span>
                       <ChevronDown
-                        className={`h-5 w-5 transition-transform duration-300 ${
-                          openDropdown === "spicy_level" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
-                        }`}
+                        className={`h-5 w-5 transition-transform duration-300 ${openDropdown === "spicy_level" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
+                          }`}
                       />
                     </button>
 
@@ -655,9 +696,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                     >
                       <span>{formData.venue_type}</span>
                       <ChevronDown
-                        className={`h-5 w-5 transition-transform duration-300 ${
-                          openDropdown === "venue_type" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
-                        }`}
+                        className={`h-5 w-5 transition-transform duration-300 ${openDropdown === "venue_type" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
+                          }`}
                       />
                     </button>
 
@@ -722,9 +762,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                       aria-label="Toggle occasion options"
                     >
                       <ChevronDown
-                        className={`h-5 w-5 transition-transform duration-300 ${
-                          openDropdown === "occasion" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
-                        }`}
+                        className={`h-5 w-5 transition-transform duration-300 ${openDropdown === "occasion" ? "rotate-180 text-[#D4AF37]" : "rotate-0"
+                          }`}
                       />
                     </button>
                   </div>
@@ -784,9 +823,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         >
           <h3 className="font-display text-[1.65rem] leading-none text-[#D4AF37] sm:text-[1.85rem]">Timing</h3>
           <ChevronDown
-            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${
-              activeSection === "timing" ? "rotate-180" : "rotate-0"
-            }`}
+            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${activeSection === "timing" ? "rotate-180" : "rotate-0"
+              }`}
           />
         </button>
 
@@ -801,23 +839,31 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
               className="overflow-hidden"
             >
               <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
-                <div className="grid grid-cols-5 gap-4 md:col-span-2">
-                  <div className="col-span-3">
+                <div className="grid grid-cols-1 gap-4 md:col-span-2">
+                  <div className="min-w-0 w-full">
                     <label htmlFor="party_date" className={labelClassName}>
                       Party Date
                     </label>
-                    <input
-                      id="party_date"
-                      name="party_date"
-                      type="date"
-                      value={formData.party_date}
-                      onChange={handleChange}
-                      className={`${inputClassName} date-time-icon-white`}
-                      required
-                    />
+                    <div className="relative w-full">
+                      <div className={`${inputClassName} flex h-[56px] w-full items-center justify-between`}>
+                        <span className={formData.party_date ? "text-white text-[14.5px] sm:text-[15px]" : "text-[14.5px] text-white/35 sm:text-[15px]"}>
+                           {formData.party_date ? formData.party_date.split('-').reverse().join(' / ') : "DD / MM / YYYY"}
+                        </span>
+                        <svg className="h-[21px] w-[21px] text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                      </div>
+                      <input
+                        id="party_date"
+                        name="party_date"
+                        type="date"
+                        value={formData.party_date}
+                        onChange={handleChange}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        required
+                      />
+                    </div>
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="min-w-0 w-full">
                     <label htmlFor="party_time" className={labelClassName}>
                       Party Time
                     </label>
@@ -834,58 +880,60 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="starter_time" className={labelClassName}>
-                    Starter Time
-                  </label>
-                  <TimePicker
-                    id="starter_time"
-                    value={formData.starter_time}
-                    onChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        starter_time: value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="maincourse_time" className={labelClassName}>
-                    Maincourse Time
-                  </label>
-                  <TimePicker
-                    id="maincourse_time"
-                    value={formData.maincourse_time}
-                    onChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        maincourse_time: value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-3">
+                <div className="grid grid-cols-[1fr_1.15fr] gap-4 md:col-span-2">
                   <div className="min-w-0 w-full">
-                    <label htmlFor="dj_required" className={labelClassName}>
-                      DJ
+                    <label htmlFor="starter_time" className={labelClassName}>
+                      Starter Time
                     </label>
-                    <select
-                      id="dj_required"
-                      name="dj_required"
-                      value={formData.dj_required}
-                      onChange={handleChange}
-                      className={`${inputClassName} h-[56px]`}
-                      required
-                    >
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
+                    <TimePicker
+                      id="starter_time"
+                      value={formData.starter_time}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          starter_time: value,
+                        }))
+                      }
+                    />
                   </div>
 
-                  {formData.dj_required === "Yes" ? (
-                    <>
+                  <div className="min-w-0 w-full">
+                    <label htmlFor="maincourse_time" className={labelClassName}>
+                      Maincourse Time
+                    </label>
+                    <TimePicker
+                      id="maincourse_time"
+                      value={formData.maincourse_time}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          maincourse_time: value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:col-span-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="min-w-0 w-full">
+                      <label htmlFor="dj_required" className={labelClassName}>
+                        DJ
+                      </label>
+                      <select
+                        id="dj_required"
+                        name="dj_required"
+                        value={formData.dj_required}
+                        onChange={handleChange}
+                        className={`${inputClassName} h-[56px]`}
+                        required
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+
+                    {formData.dj_required === "Yes" ? (
                       <div className="min-w-0 w-full">
                         <label htmlFor="jockey_required" className={labelClassName}>
                           Jockey
@@ -902,29 +950,28 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                           <option value="No">No</option>
                         </select>
                       </div>
+                    ) : (
+                      <div aria-hidden="true" className="min-w-0 w-full" />
+                    )}
+                  </div>
 
-                      <div className="min-w-0 w-full">
-                        <label htmlFor="dj_time" className={labelClassName}>
-                          DJ Time
-                        </label>
-                        <TimePicker
-                          id="dj_time"
-                          value={formData.dj_time}
-                          onChange={(value) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              dj_time: value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div aria-hidden="true" className="min-w-0 w-full" />
-                      <div aria-hidden="true" className="min-w-0 w-full" />
-                    </>
-                  )}
+                  {formData.dj_required === "Yes" ? (
+                    <div className="w-full">
+                      <label htmlFor="dj_time" className={labelClassName}>
+                        DJ Timing
+                      </label>
+                      <TimeRangePicker
+                        id="dj_time"
+                        value={formData.dj_time}
+                        onChange={(value) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            dj_time: value,
+                          }))
+                        }
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </motion.div>
@@ -940,9 +987,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         >
           <h3 className="font-display text-[1.65rem] leading-none text-[#D4AF37] sm:text-[1.85rem]">Billing Details</h3>
           <ChevronDown
-            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${
-              activeSection === "billing" ? "rotate-180" : "rotate-0"
-            }`}
+            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${activeSection === "billing" ? "rotate-180" : "rotate-0"
+              }`}
           />
         </button>
 
@@ -954,7 +1000,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
               animate={{ height: "auto", opacity: 1, y: 0 }}
               exit={{ height: 0, opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="overflow-hidden"
+              className="overflow-visible"
             >
               <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
                 <div>
@@ -1043,21 +1089,67 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="billing_advance" className={labelClassName}>
-                    Advance
-                  </label>
-                  <input
-                    id="billing_advance"
-                    name="billing_advance"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    placeholder="0"
-                    value={formData.billing_advance === 0 ? "" : formData.billing_advance}
-                    onChange={handleChange}
-                    className={inputClassName}
-                  />
+                <div className="grid grid-cols-2 gap-4 md:col-span-2">
+                  <div>
+                    <label htmlFor="billing_advance" className={labelClassName}>
+                      Advance
+                    </label>
+                    <input
+                      id="billing_advance"
+                      name="billing_advance"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0"
+                      value={formData.billing_advance === 0 ? "" : formData.billing_advance}
+                      onChange={handleChange}
+                      className={inputClassName}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="payment_mode" className={labelClassName}>
+                      Payment Mode
+                    </label>
+                    <div className="relative" data-themed-dropdown="true">
+                      <button
+                        type="button"
+                        id="payment_mode"
+                        onClick={() => setOpenDropdown(openDropdown === "payment_mode" ? null : "payment_mode")}
+                        className={`flex w-full items-center justify-between rounded-[10px] border border-white/10 bg-[#111111] px-3 py-2.5 text-sm transition-all focus:border-[#D4AF37] ${openDropdown === "payment_mode" ? "border-[#D4AF37] ring-2 ring-[#D4AF3720]" : ""}`}
+                      >
+                        <span className="text-white/85">{formData.payment_mode || "Select Mode"}</span>
+                        <ChevronDown className={`h-4 w-4 text-[#D4AF37] transition-transform duration-300 ${openDropdown === "payment_mode" ? "rotate-180" : ""}`} />
+                      </button>
+
+                      <AnimatePresence>
+                        {openDropdown === "payment_mode" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute bottom-full left-0 right-0 z-[60] mb-1 rounded-[10px] border border-[rgba(212,175,55,0.3)] bg-[#121212] shadow-[0_4px_20px_rgba(0,0,0,0.6)] backdrop-blur-md"
+                          >
+                            <div className="p-1">
+                              {supportedPaymentModes.map((mode) => (
+                                <button
+                                  key={mode}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData((prev) => ({ ...prev, payment_mode: mode }));
+                                    setOpenDropdown(null);
+                                  }}
+                                  className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[rgba(212,175,55,0.1)] ${formData.payment_mode === mode ? "bg-[rgba(212,175,55,0.08)] text-[#D4AF37]" : "text-white/70"}`}
+                                >
+                                  {mode}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -1092,9 +1184,8 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         >
           <h3 className="font-display text-[1.65rem] leading-none text-[#D4AF37] sm:text-[1.85rem]">Menu Selection ({selectedItems.length})</h3>
           <ChevronDown
-            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${
-              activeSection === "menu" ? "rotate-180" : "rotate-0"
-            }`}
+            className={`h-5 w-5 text-[#D4AF37] transition-transform duration-300 ${activeSection === "menu" ? "rotate-180" : "rotate-0"
+              }`}
           />
         </button>
 
@@ -1122,11 +1213,10 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                         type="button"
                         onClick={() => setSelectedCategory(category)}
                         whileTap={{ scale: 0.97 }}
-                        className={`shrink-0 text-left text-sm font-semibold transition duration-300 ${
-                          isActive
+                        className={`shrink-0 text-left text-sm font-semibold transition duration-300 ${isActive
                             ? "text-[#D4AF37] drop-shadow-[0_0_10px_rgba(212,175,55,0.45)]"
                             : "text-[#D4AF37CC] hover:text-[#D4AF37]"
-                        }`}
+                          }`}
                       >
                         {category}
                       </motion.button>
@@ -1141,7 +1231,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.25, ease: "easeOut" }}
-                    className="grid max-h-[420px] grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2 overflow-y-auto pr-1 [scrollbar-width:thin]"
+                    className="grid max-h-[200px] grid-cols-[repeat(auto-fit,minmax(140px,1fr))] content-start gap-2 overflow-y-auto p-1 pb-4 pr-2 [scrollbar-width:thin]"
                   >
                     {menuData[selectedCategory].map((item) => {
                       const isSelected = selectedItems.includes(item);
@@ -1152,11 +1242,10 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                           type="button"
                           onClick={() => toggleMenuItem(item)}
                           whileTap={{ scale: 0.97 }}
-                          className={`rounded-xl border px-3 py-2 text-left text-sm transition duration-250 ${
-                            isSelected
+                          className={`rounded-xl border px-3 py-2 text-left text-sm transition duration-250 ${isSelected
                               ? "border-[#D4AF37] bg-[#D4AF371A] text-[#F0D981] shadow-[0_0_16px_rgba(212,175,55,0.24)] scale-[1.01]"
                               : "border-white/10 bg-[#111111] text-white/80 hover:border-[#D4AF3760] hover:text-white"
-                          }`}
+                            }`}
                         >
                           {item}
                         </motion.button>
@@ -1233,6 +1322,41 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
           </div>
         ) : null}
       </div>
+
+      <AnimatePresence>
+        {showConfirmPopup ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-sm rounded-[24px] border border-[#D4AF3740] bg-[#0b0b0b] p-6 shadow-[0_24px_50px_rgba(212,175,55,0.15)]"
+            >
+              <h3 className="mb-2 font-display text-[1.8rem] leading-none text-[#D4AF37]">Confirm Booking</h3>
+              <p className="mb-6 text-sm text-white/70">
+                Are you sure you want to add this booking? Please ensure all details are correct.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPopup(false)}
+                  className="flex-1 rounded-xl border border-white/10 bg-[#111] py-2.5 text-sm font-semibold text-white/80 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmAndSubmit}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#f2d57b] py-2.5 text-sm font-bold text-black shadow-[0_4px_14px_rgba(212,175,55,0.3)] transition-all hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(212,175,55,0.4)]"
+                >
+                  Yes, Book It!
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        ) : null}
+      </AnimatePresence>
     </form>
   );
 }

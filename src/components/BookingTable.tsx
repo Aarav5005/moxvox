@@ -64,8 +64,8 @@ export default function BookingTable({ bookings, onDelete, onUpdate }: BookingTa
 
   return (
     <>
-      <div className="w-full rounded-2xl border border-[#D4AF3730] bg-[rgba(255,255,255,0.03)] p-4 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+      <div className="w-full flex flex-col h-[calc(100dvh-116px)] sm:h-[calc(100dvh-132px)]">
+        <div className="mb-3 shrink-0 flex flex-wrap items-center justify-end gap-2">
           <label htmlFor="booking-sort" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
             Sort by
           </label>
@@ -89,15 +89,16 @@ export default function BookingTable({ bookings, onDelete, onUpdate }: BookingTa
           </button>
         </div>
 
-        <table className="w-full table-auto overflow-hidden rounded-xl">
-          <thead className="bg-[#0f0f0f] text-left text-xs uppercase tracking-[0.16em] text-[#f0d98e]">
-            <tr>
-              <th className="px-2 py-2.5 sm:px-3">Name</th>
-              <th className="px-2 py-2.5 sm:px-3">Phone</th>
-              <th className="whitespace-nowrap px-2 py-2.5 sm:px-3">Date</th>
-              <th className="whitespace-nowrap px-2 py-2.5 sm:px-3">Action</th>
-            </tr>
-          </thead>
+        <div className="flex-1 overflow-y-auto [scrollbar-width:thin] -mx-4 sm:-mx-6">
+          <table className="w-full table-auto">
+            <thead className="sticky top-0 z-20 bg-[#0f0f0f] text-left text-xs uppercase tracking-[0.16em] text-[#f0d98e] shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+               <tr>
+                <th className="pl-4 pr-1 py-2 sm:pl-6 sm:pr-2 sm:py-2.5">Name</th>
+                <th className="px-1 py-2 text-center sm:px-2 sm:py-2.5">Phone</th>
+                <th className="whitespace-nowrap px-1 py-2 text-center sm:px-2 sm:py-2.5">Date</th>
+                <th className="whitespace-nowrap pr-4 pl-1 py-2 text-right sm:pr-6 sm:pl-2 sm:py-2.5">Action</th>
+              </tr>
+            </thead>
           <tbody className="text-sm text-white/85">
             {sortedBookings.length === 0 ? (
               <tr>
@@ -109,18 +110,16 @@ export default function BookingTable({ bookings, onDelete, onUpdate }: BookingTa
               sortedBookings.map((booking, index) => (
                 <tr
                   key={getRowKey(booking, index)}
-                  className={`${
-                    index % 2 === 0 ? "bg-[#101010]" : "bg-[#0c0c0c]"
-                  } border-b border-white/5 transition duration-300 hover:bg-[#161616]`}
+                  className="border-b border-white/5 last:border-b-0 transition duration-300 hover:bg-[rgba(255,255,255,0.02)]"
                 >
-                  <td className="px-2 py-2.5 font-medium text-white sm:px-3">{booking.customer_name}</td>
-                  <td className="whitespace-nowrap px-2 py-2.5 text-[13px] sm:px-3 sm:text-sm">{booking.phone}</td>
-                  <td className="whitespace-nowrap px-2 py-2.5 text-[13px] sm:px-3 sm:text-sm">{booking.party_date}</td>
-                  <td className="whitespace-nowrap px-2 py-2.5 sm:px-3">
+                  <td className="max-w-[85px] truncate pl-4 pr-1 py-2.5 text-[13px] font-medium text-white sm:max-w-[200px] sm:pl-6 sm:pr-2 sm:text-sm" title={booking.customer_name}>{booking.customer_name}</td>
+                  <td className="whitespace-nowrap px-1 py-2.5 text-center text-[12px] sm:px-2 sm:text-sm">{booking.phone}</td>
+                  <td className="whitespace-nowrap px-1 py-2.5 text-center text-[12px] sm:px-2 sm:text-sm">{booking.party_date}</td>
+                  <td className="whitespace-nowrap pr-4 pl-1 py-2.5 text-right sm:pr-6 sm:pl-2">
                     <button
                       type="button"
                       onClick={() => handleViewDetails(booking)}
-                      className="rounded-[10px] bg-gradient-to-r from-[#D4AF37] to-[#f1d274] px-2 py-1.5 text-[11px] font-semibold leading-tight text-black shadow-[0_6px_18px_rgba(212,175,55,0.28)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_10px_24px_rgba(212,175,55,0.4)] sm:px-2.5 sm:text-xs"
+                      className="rounded-[10px] bg-gradient-to-r from-[#D4AF37] to-[#f1d274] px-2 py-1 text-[10px] font-semibold leading-tight text-black shadow-[0_6px_18px_rgba(212,175,55,0.28)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_10px_24px_rgba(212,175,55,0.4)] sm:px-2.5 sm:py-1.5 sm:text-xs"
                     >
                       <span className="sm:hidden">Details</span>
                       <span className="hidden sm:inline">View Details</span>
@@ -131,6 +130,7 @@ export default function BookingTable({ bookings, onDelete, onUpdate }: BookingTa
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <BookingDetailsModal booking={selectedBooking} isOpen={isModalOpen} onClose={handleCloseModal} onDelete={onDelete} onUpdate={onUpdate} />

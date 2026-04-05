@@ -47,6 +47,32 @@ function normalizeMenuItems(value: unknown): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Ensures that empty strings in the payload are converted to null for fields
+ * that should be NULL in the database (like time, date, etc.).
+ */
+export function sanitizePayload<T extends Record<string, any>>(data: T): T {
+  const fieldsToNullify = [
+    "party_time",
+    "starter_time",
+    "maincourse_time",
+    "dj_time",
+    "date_of_birth",
+    "anniversary",
+    "payment_mode",
+  ];
+
+  const sanitized = { ...data };
+  
+  fieldsToNullify.forEach((field) => {
+    if (field in sanitized && (sanitized as any)[field] === "") {
+      (sanitized as any)[field] = null;
+    }
+  });
+
+  return sanitized;
+}
+
 function normalizeBookingRow(row: Booking): Booking {
   return {
     ...row,
@@ -167,7 +193,7 @@ export async function getBookings() {
 }
 
 export async function createBooking(data: BookingPayload) {
-  let payload: BookingPayload | Record<string, unknown> = { ...data };
+  let payload: BookingPayload | Record<string, unknown> = sanitizePayload({ ...data });
 
   // Allow enough retries to drop many missing columns from newer UI payloads.
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -213,7 +239,7 @@ export async function updateBooking(booking: Booking, data: Partial<BookingPaylo
     };
   }
 
-  let payload: Partial<BookingPayload> | Record<string, unknown> = { ...data };
+  let payload: Partial<BookingPayload> | Record<string, unknown> = sanitizePayload({ ...data });
 
   // Allow enough retries to drop many missing columns from newer UI payloads.
   for (let attempt = 0; attempt < 30; attempt += 1) {

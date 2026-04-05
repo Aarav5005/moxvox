@@ -7,7 +7,7 @@ export type Booking = {
   date_of_birth: string | null;
   anniversary: string | null;
   party_date: string;
-  party_time: string;
+  party_time: string | null;
   starter_time: string | null;
   maincourse_time: string | null;
   guests: number;

@@ -77,7 +77,7 @@ export function TimePicker({ id, value, onChange, className, disabled }: TimePic
     onChange(convertTo24Hour(h, m, newP));
   };
 
-  const inputStyle = `appearance-none bg-transparent py-2.5 text-sm text-white outline-none text-center hover:text-[#D4AF37] transition-colors w-6 sm:w-8`;
+  const inputStyle = `appearance-none bg-transparent py-2.5 text-[16px] font-medium sm:text-lg text-white outline-none text-center hover:text-[#D4AF37] transition-colors w-8 sm:w-10`;
 
   return (
     <div className={`flex items-center justify-between h-[56px] rounded-[10px] border border-white/10 bg-[#111111] px-2 focus-within:border-[#D4AF37] focus-within:ring-2 focus-within:ring-[#D4AF3720] transition-all ${className} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}>
@@ -94,7 +94,7 @@ export function TimePicker({ id, value, onChange, className, disabled }: TimePic
           disabled={disabled}
         />
         
-        <span className="text-white/20 font-medium px-0.5 text-[10px] leading-none">:</span>
+        <span className="text-white/20 font-bold px-0.5 text-[16px] sm:text-lg leading-none pb-[2px]">:</span>
         
         <input
           type="text"
@@ -113,7 +113,7 @@ export function TimePicker({ id, value, onChange, className, disabled }: TimePic
         type="button"
         id={`${id}_p`}
         onClick={handleTogglePeriod}
-        className="appearance-none bg-transparent py-2.5 text-xs sm:text-sm font-bold text-[#D4AF37] outline-none cursor-pointer text-center px-3 sm:px-4 hover:text-[#f4d986] transition-colors uppercase shrink-0"
+        className="appearance-none bg-transparent py-2.5 text-[14px] sm:text-[15px] font-bold text-[#D4AF37] outline-none cursor-pointer text-center px-3 sm:px-4 hover:text-[#f4d986] transition-colors uppercase shrink-0"
         disabled={disabled}
       >
         {p}
