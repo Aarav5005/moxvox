@@ -601,7 +601,13 @@ export default function BookingDetailsModal({
       ["DJ Time", formatTime(displayData.dj_time)],
     ]);
 
-    addSection("Menu Items", [["Selected Menu", menuItemsText || "N/A"]]);
+    const kitchenMenuText = Array.isArray(displayData.menu_items)
+      ? displayData.menu_items.filter(Boolean).map(item => `• ${item}`).join("\n")
+      : typeof displayData.menu_items === "string"
+        ? displayData.menu_items.split(",").map(i => i.trim()).filter(Boolean).map(item => `• ${item}`).join("\n")
+        : "N/A";
+
+    addSection("Menu Items", [["Selected Menu", kitchenMenuText || "N/A"]]);
 
     const safeName = formatValue(displayData.customer_name).replace(/[^a-zA-Z0-9_-]/g, "_");
     const safeDate = formatValue(displayData.party_date).replace(/[^0-9-]/g, "");

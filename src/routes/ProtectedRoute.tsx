@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { getCurrentUser } from "@/services/authService";
 
 type ProtectedRouteProps = {
   children: ReactNode;
@@ -13,30 +14,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     let cancelled = false;
 
     const verifySession = async () => {
-      const authToken = sessionStorage.getItem("adminAuthToken") || "";
-
-      if (!authToken) {
-        if (!cancelled) {
-          setIsAuthenticated(false);
-          setIsChecking(false);
-        }
-        return;
-      }
-
       try {
-        const response = await fetch("/api/verify-admin-session", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ authToken }),
-        });
-
-        const result = (await response.json()) as { success?: boolean };
-        const success = response.ok && !!result?.success;
-
+        const { data: { user }, error } = await getCurrentUser();
+        
         if (!cancelled) {
-          setIsAuthenticated(success);
+          setIsAuthenticated(!!user && !error);
           setIsChecking(false);
         }
       } catch {
