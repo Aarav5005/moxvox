@@ -1,4 +1,4 @@
-name = "mox-vox-website"
+name = "moxvox"
 compatibility_date = "2026-04-03"
 pages_build_output_dir = "dist"
 main = "src/index.ts"
