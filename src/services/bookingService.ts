@@ -54,6 +54,7 @@ function normalizeMenuItems(value: unknown): string[] {
 export function sanitizePayload<T extends Record<string, unknown>>(data: T): T {
   const fieldsToNullify = [
     "party_time",
+    "party_end_time",
     "starter_time",
     "maincourse_time",
     "dj_time",

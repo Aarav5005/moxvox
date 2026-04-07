@@ -8,6 +8,7 @@ export type Booking = {
   anniversary: string | null;
   party_date: string;
   party_time: string | null;
+  party_end_time: string | null;
   starter_time: string | null;
   maincourse_time: string | null;
   guests: number;

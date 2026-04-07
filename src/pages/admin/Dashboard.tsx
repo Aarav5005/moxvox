@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { logout } from "@/services/authService";
 import BookingForm from "@/components/BookingForm";
 import BookingTable from "@/components/BookingTable";
 import { useBookings } from "@/hooks/useBookings";
@@ -26,6 +28,8 @@ function getBookingDateTime(booking: Booking) {
 
 export default function Dashboard() {
   const { bookings, loading, addBooking, removeBooking, editBooking } = useBookings();
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeView, setActiveView] = useState<
     "add-booking" | "upcoming-party" | "happy-customers"
   >("add-booking");
@@ -37,13 +41,14 @@ export default function Dashboard() {
   }, []);
 
   const handleUpdateBooking = async (updatedBooking: Booking): Promise<boolean> => {
-    const { customer_name, phone, party_date, party_time, starter_time, maincourse_time, guests, food_type, spicy_level, package_type, venue_type, occasion, dj_required, dj_time, other_details, menu_items, billing_pax, billing_dj, billing_decor, billing_gst, billing_advance, billing_g_amount, billing_due_amount } = updatedBooking;
+    const { customer_name, phone, party_date, party_time, party_end_time, starter_time, maincourse_time, guests, food_type, spicy_level, package_type, venue_type, occasion, dj_required, dj_time, other_details, menu_items, billing_pax, billing_dj, billing_decor, billing_gst, billing_advance, billing_g_amount, billing_due_amount } = updatedBooking;
     
     await editBooking(updatedBooking, {
       customer_name,
       phone,
       party_date,
       party_time,
+      party_end_time,
       starter_time,
       maincourse_time,
       guests,
@@ -86,6 +91,21 @@ export default function Dashboard() {
     return { upcomingBookings: upcoming, happyCustomers: completed };
   }, [bookings, now]);
 
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+      localStorage.removeItem("adminEditVerified");
+      localStorage.removeItem("adminEditVerifiedAt");
+      navigate("/admin/login", { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#060606] bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.14),transparent_40%),linear-gradient(180deg,#080808_0%,#050505_100%)] pb-0">
       <header className="sticky top-0 z-40 w-full bg-[#060606]/85 backdrop-blur-md pt-4 pb-4 sm:pt-6 sm:pb-5">
@@ -95,8 +115,8 @@ export default function Dashboard() {
             alt="MoxVox logo"
             className="absolute right-8 -top-3 h-16 w-16 object-contain sm:-top-5 sm:right-12 sm:h-20 sm:w-20"
           />
-          <h1 className="font-display text-2xl italic tracking-[0.07em] text-[#D4AF37] sm:text-3xl">Booking Dashboard</h1>
-          <nav className="mt-3 grid grid-cols-3 gap-1 text-center text-[13px] font-semibold sm:flex sm:justify-start sm:gap-4 sm:text-sm">
+          <h1 className="pr-20 font-display text-2xl italic tracking-[0.07em] text-[#D4AF37] sm:pr-24 sm:text-3xl">Booking Dashboard</h1>
+          <nav className="mt-3 grid grid-cols-3 gap-1 text-center text-[13px] font-semibold sm:flex sm:flex-wrap sm:justify-start sm:gap-4 sm:text-sm">
             <button
               type="button"
               onClick={() => setActiveView("add-booking")}
@@ -136,7 +156,13 @@ export default function Dashboard() {
 
       <div className="mx-auto max-w-[1000px] space-y-2 px-4 pt-4 sm:px-6 sm:pt-6">
 
-        {activeView === "add-booking" ? <BookingForm onSubmitBooking={addBooking} /> : null}
+        {activeView === "add-booking" ? (
+          <BookingForm
+            onSubmitBooking={addBooking}
+            onLogout={handleLogout}
+            isLoggingOut={isLoggingOut}
+          />
+        ) : null}
 
         {activeView === "upcoming-party" ? (
           loading ? (
@@ -165,6 +191,7 @@ export default function Dashboard() {
             />
           )
         ) : null}
+
       </div>
     </main>
   );

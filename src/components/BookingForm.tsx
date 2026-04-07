@@ -8,6 +8,8 @@ import { combineTo12HourRange, parse12HourRange } from "@/lib/timeUtils";
 
 type BookingFormProps = {
   onSubmitBooking: (data: BookingPayload) => Promise<boolean>;
+  onLogout?: () => void;
+  isLoggingOut?: boolean;
 };
 
 type SectionKey = "customer" | "event" | "menu" | "timing" | "billing";
@@ -151,6 +153,7 @@ const initialForm: BookingPayload = {
   anniversary: "",
   party_date: "",
   party_time: "",
+  party_end_time: "",
   starter_time: "",
   maincourse_time: "",
   guests: 0,
@@ -185,7 +188,7 @@ type BookingFormDraft = {
   updatedAt: number;
 };
 
-export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
+export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = false }: BookingFormProps) {
   const [formData, setFormData] = useState<BookingPayload>(initialForm);
   const [isGuestsFocused, setIsGuestsFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -380,6 +383,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
       date_of_birth: formData.date_of_birth || null,
       anniversary: formData.anniversary || null,
       party_time: formData.party_time || null,
+      party_end_time: formData.party_end_time || null,
       starter_time: formData.starter_time || null,
       maincourse_time: formData.maincourse_time || null,
       dj_time: formData.dj_time || null,
@@ -402,6 +406,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         name: cleanedData.customer_name,
         date: cleanedData.party_date,
         party_time: cleanedData.party_time,
+        party_end_time: cleanedData.party_end_time,
         starter_time: cleanedData.starter_time,
         main_course_time: cleanedData.maincourse_time,
         dj_time: cleanedData.dj_time,
@@ -915,7 +920,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
 
                   <div className="min-w-0 w-full">
                     <label htmlFor="party_time" className={labelClassName}>
-                      Party Time
+                      Party Start Time
                     </label>
                     <TimePicker
                       id="party_time"
@@ -924,6 +929,22 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                         setFormData((prev) => ({
                           ...prev,
                           party_time: value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="min-w-0 w-full">
+                    <label htmlFor="party_end_time" className={labelClassName}>
+                      Party End Time
+                    </label>
+                    <TimePicker
+                      id="party_end_time"
+                      value={formData.party_end_time}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          party_end_time: value,
                         }))
                       }
                     />
@@ -1365,6 +1386,17 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
         >
           {submitting ? "Saving..." : "Add Booking"}
         </button>
+
+        {onLogout ? (
+          <button
+            type="button"
+            onClick={onLogout}
+            disabled={isLoggingOut}
+            className="inline-flex items-center justify-center rounded-[12px] border border-[#D4AF3740] bg-[#111111] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#f4d986] transition hover:border-[#D4AF37] hover:bg-[#171717] hover:text-[#ffe9b2] disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm"
+          >
+            {isLoggingOut ? "Logging out..." : "Logout"}
+          </button>
+        ) : null}
 
         {showSuccessPopup ? (
           <div className="ml-auto inline-flex items-center justify-center rounded-[12px] border border-[#2dff8a99] bg-[linear-gradient(135deg,#0d2f1f_0%,#0f4729_55%,#0a2a19_100%)] px-4 py-2.5 text-sm font-bold uppercase tracking-[0.08em] text-[#8dffba] shadow-[0_0_10px_rgba(45,255,138,0.55),0_0_24px_rgba(45,255,138,0.35),inset_0_0_8px_rgba(141,255,186,0.22)]">

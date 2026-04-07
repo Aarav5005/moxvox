@@ -586,6 +586,8 @@ export default function BookingDetailsModal({
       ["Customer Name", displayData.customer_name],
       ["Party Date", displayData.party_date],
       ["Party Time", formatTime(displayData.party_time)],
+      ["Party End Time", formatTime(displayData.party_end_time)],
+      ["Party End Time", formatTime(displayData.party_end_time)],
       ["Member (Guests)", displayData.guests],
       ["Venue Type", displayData.venue_type],
     ]);
@@ -785,6 +787,7 @@ export default function BookingDetailsModal({
               </div>
               {renderField("Party Date", "party_date", "date")}
               {renderField("Party Time", "party_time", "time")}
+              {renderField("Party End Time", "party_end_time", "time")}
               {renderField("Guests", "guests", "number")}
               {renderField("Package Type", "package_type", "select", [
                 "Snack Attack",
