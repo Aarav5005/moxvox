@@ -41,7 +41,7 @@ export default function Dashboard() {
   }, []);
 
   const handleUpdateBooking = async (updatedBooking: Booking): Promise<boolean> => {
-    const { customer_name, phone, party_date, party_time, party_end_time, starter_time, maincourse_time, guests, food_type, spicy_level, package_type, venue_type, occasion, dj_required, dj_time, other_details, menu_items, billing_pax, billing_dj, billing_decor, billing_gst, billing_advance, billing_g_amount, billing_due_amount } = updatedBooking;
+    const { customer_name, phone, party_date, party_time, party_end_time, starter_required, starter_time, maincourse_required, maincourse_time, guests, food_type, spicy_level, package_type, venue_type, occasion, dj_required, dj_time, other_details, menu_items, billing_pax, billing_dj, billing_decor, billing_gst, billing_advance, billing_g_amount, billing_due_amount } = updatedBooking;
     
     await editBooking(updatedBooking, {
       customer_name,
@@ -49,7 +49,9 @@ export default function Dashboard() {
       party_date,
       party_time,
       party_end_time,
+      starter_required,
       starter_time,
+      maincourse_required,
       maincourse_time,
       guests,
       food_type,

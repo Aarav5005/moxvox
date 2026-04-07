@@ -154,7 +154,9 @@ const initialForm: BookingPayload = {
   party_date: "",
   party_time: "",
   party_end_time: "",
+  starter_required: "No",
   starter_time: "",
+  maincourse_required: "No",
   maincourse_time: "",
   guests: 0,
   food_type: "Regular Food",
@@ -440,6 +442,22 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
 
   const removeSelectedItem = (item: string) => {
     setSelectedItems((prev) => prev.filter((selected) => selected !== item));
+  };
+
+  const handleStarterRequiredToggle = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      starter_required: checked ? "Yes" : "No",
+      starter_time: checked ? prev.starter_time : "",
+    }));
+  };
+
+  const handleMaincourseRequiredToggle = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      maincourse_required: checked ? "Yes" : "No",
+      maincourse_time: checked ? prev.maincourse_time : "",
+    }));
   };
 
   const previewSelectedItems = selectedItems.slice(0, 3).join(", ");
@@ -951,14 +969,26 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-[1fr_1.15fr] gap-4 md:col-span-2">
-                  <div className="min-w-0 w-full">
-                    <label htmlFor="starter_time" className={labelClassName}>
-                      Starter Time
-                    </label>
+                <div className="grid grid-cols-1 gap-3 md:col-span-2 sm:grid-cols-2">
+                  <div className="min-w-0 w-full rounded-xl border border-white/10 bg-[#0f0f0f] p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <label htmlFor="starter_time" className={labelClassName}>
+                        Starter Time
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 rounded-full border border-[#D4AF3740] bg-[#151515] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#f4d986]">
+                        <input
+                          type="checkbox"
+                          checked={formData.starter_required === "Yes"}
+                          onChange={(event) => handleStarterRequiredToggle(event.target.checked)}
+                          className="h-3.5 w-3.5 accent-[#D4AF37]"
+                        />
+                        Need
+                      </label>
+                    </div>
                     <TimePicker
                       id="starter_time"
                       value={formData.starter_time}
+                      disabled={formData.starter_required !== "Yes"}
                       onChange={(value) =>
                         setFormData((prev) => ({
                           ...prev,
@@ -968,13 +998,25 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                     />
                   </div>
 
-                  <div className="min-w-0 w-full">
-                    <label htmlFor="maincourse_time" className={labelClassName}>
-                      Maincourse Time
-                    </label>
+                  <div className="min-w-0 w-full rounded-xl border border-white/10 bg-[#0f0f0f] p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <label htmlFor="maincourse_time" className={labelClassName}>
+                        Maincourse Time
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 rounded-full border border-[#D4AF3740] bg-[#151515] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#f4d986]">
+                        <input
+                          type="checkbox"
+                          checked={formData.maincourse_required === "Yes"}
+                          onChange={(event) => handleMaincourseRequiredToggle(event.target.checked)}
+                          className="h-3.5 w-3.5 accent-[#D4AF37]"
+                        />
+                        Need
+                      </label>
+                    </div>
                     <TimePicker
                       id="maincourse_time"
                       value={formData.maincourse_time}
+                      disabled={formData.maincourse_required !== "Yes"}
                       onChange={(value) =>
                         setFormData((prev) => ({
                           ...prev,

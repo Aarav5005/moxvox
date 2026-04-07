@@ -133,6 +133,14 @@ export default function BookingDetailsModal({
         [field]: finalValue,
       };
 
+      if (field === "starter_required" && value === "No") {
+        updatedData.starter_time = null;
+      }
+
+      if (field === "maincourse_required" && value === "No") {
+        updatedData.maincourse_time = null;
+      }
+
       // Auto-calculate G. Amount = ((PAX x Guests) + DJ + Decor) + GST Amount
       if (["guests", "billing_pax", "billing_dj", "billing_decor", "billing_gst"].includes(field)) {
         const guests = field === "guests" ? Number(value) : updatedData.guests;
@@ -475,7 +483,9 @@ export default function BookingDetailsModal({
     ]);
 
     addSection("Timing & DJ", [
+      ["Starter Required", displayData.starter_required],
       ["Starter Time", formatTime(displayData.starter_time)],
+      ["Maincourse Required", displayData.maincourse_required],
       ["Maincourse Time", formatTime(displayData.maincourse_time)],
       ["DJ Required", displayData.dj_required],
       ["Jockey", displayData.jockey_required],
@@ -595,7 +605,9 @@ export default function BookingDetailsModal({
     addSection("Kitchen Preparation", [
       ["Food Type", displayData.food_type],
       ["Spicy Level", displayData.spicy_level],
+      ["Starter Required", displayData.starter_required],
       ["Starter Time", formatTime(displayData.starter_time)],
+      ["Maincourse Required", displayData.maincourse_required],
       ["Maincourse Time", formatTime(displayData.maincourse_time)],
     ]);
 
@@ -825,7 +837,9 @@ export default function BookingDetailsModal({
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Food Timing</h3>
             <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+              {renderField("Starter Required", "starter_required", "select", ["Yes", "No"])}
               {renderField("Starter Time", "starter_time", "time")}
+              {renderField("Maincourse Required", "maincourse_required", "select", ["Yes", "No"])}
               {renderField("Maincourse Time", "maincourse_time", "time")}
             </div>
           </div>

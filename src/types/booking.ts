@@ -9,7 +9,9 @@ export type Booking = {
   party_date: string;
   party_time: string | null;
   party_end_time: string | null;
+  starter_required: string;
   starter_time: string | null;
+  maincourse_required: string;
   maincourse_time: string | null;
   guests: number;
   food_type: string;
