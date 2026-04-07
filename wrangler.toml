@@ -1,11 +1,3 @@
 name = "mox-vox-website"
 compatibility_date = "2026-04-03"
 pages_build_output_dir = "dist"
-main = "src/index.ts"
-
-[build]
-command = "npm run build"
-
-[assets]
-directory = "./dist"
-binding = "STATIC_ASSETS"

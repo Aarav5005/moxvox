@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import { Eye, EyeOff, FileText, ChevronUp, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,9 +22,9 @@ export default function BookingDetailsModal({
   onDelete,
   onUpdate,
 }: BookingDetailsModalProps) {
-  const ADMIN_VERIFIED_KEY = "adminVerified";
-  const ADMIN_VERIFIED_AT_KEY = "verifiedAt";
-  const VERIFICATION_TTL_MS = 5 * 60 * 1000;
+  const ADMIN_VERIFIED_KEY = "adminEditVerified";
+  const ADMIN_VERIFIED_AT_KEY = "adminEditVerifiedAt";
+  const VERIFICATION_TTL_MS = 8 * 60 * 60 * 1000;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Booking | null>(null);
@@ -50,15 +50,15 @@ export default function BookingDetailsModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPdfMenu, setShowPdfMenu] = useState(false);
 
-  const clearVerification = () => {
+  const clearVerification = useCallback(() => {
     setIsVerified(false);
-    sessionStorage.removeItem(ADMIN_VERIFIED_KEY);
-    sessionStorage.removeItem(ADMIN_VERIFIED_AT_KEY);
-  };
+    localStorage.removeItem(ADMIN_VERIFIED_KEY);
+    localStorage.removeItem(ADMIN_VERIFIED_AT_KEY);
+  }, [ADMIN_VERIFIED_AT_KEY, ADMIN_VERIFIED_KEY]);
 
-  const syncVerificationFromSession = () => {
-    const verified = sessionStorage.getItem(ADMIN_VERIFIED_KEY) === "true";
-    const verifiedAt = Number(sessionStorage.getItem(ADMIN_VERIFIED_AT_KEY) || "0");
+  const syncVerificationFromSession = useCallback(() => {
+    const verified = localStorage.getItem(ADMIN_VERIFIED_KEY) === "true";
+    const verifiedAt = Number(localStorage.getItem(ADMIN_VERIFIED_AT_KEY) || "0");
 
     if (!verified || !verifiedAt) {
       clearVerification();
@@ -73,7 +73,7 @@ export default function BookingDetailsModal({
 
     setIsVerified(true);
     return true;
-  };
+  }, [ADMIN_VERIFIED_AT_KEY, ADMIN_VERIFIED_KEY, VERIFICATION_TTL_MS, clearVerification]);
 
   const openVerificationModal = (action: "edit" | "delete") => {
     setPendingAction(action);
@@ -95,11 +95,8 @@ export default function BookingDetailsModal({
       setMenuItemsInput("");
       setShowPdfMenu(false);
       syncVerificationFromSession();
-    } else {
-      // Clear verification when modal closes
-      clearVerification();
     }
-  }, [isOpen]);
+  }, [isOpen, syncVerificationFromSession]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -111,7 +108,7 @@ export default function BookingDetailsModal({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isOpen]);
+  }, [isOpen, syncVerificationFromSession]);
 
   const handleEdit = () => {
     setEditData(booking);
@@ -266,8 +263,8 @@ export default function BookingDetailsModal({
       }
 
       setIsVerified(true);
-      sessionStorage.setItem(ADMIN_VERIFIED_KEY, "true");
-      sessionStorage.setItem(ADMIN_VERIFIED_AT_KEY, String(Date.now()));
+      localStorage.setItem(ADMIN_VERIFIED_KEY, "true");
+      localStorage.setItem(ADMIN_VERIFIED_AT_KEY, String(Date.now()));
       setIsVerificationModalOpen(false);
       setVerifyPassword("");
       setOldPassword("");
@@ -324,8 +321,8 @@ export default function BookingDetailsModal({
 
       // Old password has been validated, so this admin session is trusted.
       setIsVerified(true);
-      sessionStorage.setItem(ADMIN_VERIFIED_KEY, "true");
-      sessionStorage.setItem(ADMIN_VERIFIED_AT_KEY, String(Date.now()));
+      localStorage.setItem(ADMIN_VERIFIED_KEY, "true");
+      localStorage.setItem(ADMIN_VERIFIED_AT_KEY, String(Date.now()));
 
       setVerifySuccess("Password changed successfully.");
       setVerifyPassword(newPassword);
@@ -369,6 +366,10 @@ export default function BookingDetailsModal({
     if (timeStr.includes(" AM") || timeStr.includes(" PM")) return timeStr;
     return convertTo12Hour(timeStr);
   };
+
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -602,10 +603,13 @@ export default function BookingDetailsModal({
     ]);
 
     const kitchenMenuText = Array.isArray(displayData.menu_items)
-      ? displayData.menu_items.filter(Boolean).map(item => `• ${item}`).join("\n")
-      : typeof displayData.menu_items === "string"
-        ? displayData.menu_items.split(",").map(i => i.trim()).filter(Boolean).map(item => `• ${item}`).join("\n")
-        : "N/A";
+      ? displayData.menu_items.filter(Boolean).map((item) => `• ${item}`).join("\n")
+      : String(displayData.menu_items || "")
+        .split(",")
+        .map((i) => i.trim())
+        .filter(Boolean)
+        .map((item) => `• ${item}`)
+        .join("\n");
 
     addSection("Menu Items", [["Selected Menu", kitchenMenuText || "N/A"]]);
 
@@ -705,19 +709,20 @@ export default function BookingDetailsModal({
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">{label}</p>
           <input
             type={type}
+            max={field === "date_of_birth" || field === "anniversary" ? today : undefined}
             inputMode={field === "phone" ? "numeric" : undefined}
             pattern={field === "phone" ? "[0-9]{10}" : undefined}
             maxLength={field === "phone" ? 10 : undefined}
             minLength={field === "phone" ? 10 : undefined}
             title={field === "phone" ? "Please enter a 10-digit phone number" : undefined}
-            value={editData[field] as string | number}
+            value={(editData[field] ?? "") as string | number}
             onChange={(e) =>
               handleChange(
                 field,
                 type === "number" ? Number(e.target.value) : e.target.value
               )
             }
-            className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
+            className={`w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]${type === "date" ? " date-time-icon-glow" : ""}`}
           />
         </div>
       );

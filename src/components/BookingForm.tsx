@@ -175,6 +175,16 @@ const initialForm: BookingPayload = {
   payment_mode: "cash",
 };
 
+const BOOKING_DRAFT_STORAGE_KEY = "bookingFormDraftV1";
+
+type BookingFormDraft = {
+  formData: BookingPayload;
+  selectedItems: string[];
+  activeSection: SectionKey | null;
+  selectedCategory: string;
+  updatedAt: number;
+};
+
 export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
   const [formData, setFormData] = useState<BookingPayload>(initialForm);
   const [isGuestsFocused, setIsGuestsFocused] = useState(false);
@@ -193,6 +203,66 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
   const spicyLevelOptions = ["Spicy", "Medium Spicy", "Less Spicy"];
   const venueTypeOptions = ["Club", "Cafe", "Rooftop", "PDR - 1", "PDR - 2"];
   const supportedPaymentModes = ["Q5", "Q7", "cash", "card", "upi"];
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+
+  useEffect(() => {
+    const rawDraft = localStorage.getItem(BOOKING_DRAFT_STORAGE_KEY);
+    if (!rawDraft) return;
+
+    try {
+      const parsed = JSON.parse(rawDraft) as Partial<BookingFormDraft>;
+
+      if (parsed.formData) {
+        setFormData({ ...initialForm, ...parsed.formData });
+      }
+
+      if (Array.isArray(parsed.selectedItems)) {
+        setSelectedItems(parsed.selectedItems.filter((item): item is string => typeof item === "string"));
+      }
+
+      if (typeof parsed.selectedCategory === "string" && menuCategories.includes(parsed.selectedCategory)) {
+        setSelectedCategory(parsed.selectedCategory);
+      }
+
+      if (
+        parsed.activeSection === "customer" ||
+        parsed.activeSection === "event" ||
+        parsed.activeSection === "menu" ||
+        parsed.activeSection === "timing" ||
+        parsed.activeSection === "billing" ||
+        parsed.activeSection === null
+      ) {
+        setActiveSection(parsed.activeSection);
+      }
+    } catch {
+      localStorage.removeItem(BOOKING_DRAFT_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    const hasUserData =
+      formData.customer_name.trim() !== "" ||
+      formData.phone.trim() !== "" ||
+      formData.party_date.trim() !== "" ||
+      selectedItems.length > 0;
+
+    if (!hasUserData) {
+      localStorage.removeItem(BOOKING_DRAFT_STORAGE_KEY);
+      return;
+    }
+
+    const draft: BookingFormDraft = {
+      formData,
+      selectedItems,
+      activeSection,
+      selectedCategory,
+      updatedAt: Date.now(),
+    };
+
+    localStorage.setItem(BOOKING_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  }, [formData, selectedItems, activeSection, selectedCategory]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -350,6 +420,7 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
     setFormData(initialForm);
     setSelectedItems([]);
     setShowAllSelectedItems(false);
+    localStorage.removeItem(BOOKING_DRAFT_STORAGE_KEY);
     setShowSuccessPopup(true);
     window.setTimeout(() => setShowSuccessPopup(false), 2200);
   };
@@ -463,44 +534,30 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                   <label htmlFor="date_of_birth" className={labelClassName}>
                     Date Of Birth (Optional)
                   </label>
-                  <div className="relative w-full">
-                    <div className={`${inputClassName} flex h-[56px] w-full items-center justify-between`}>
-                      <span className={formData.date_of_birth ? "text-white text-[14.5px] sm:text-[15px]" : "text-[14.5px] text-white/35 sm:text-[15px]"}>
-                         {formData.date_of_birth ? formData.date_of_birth.split('-').reverse().join(' / ') : "DD / MM / YYYY"}
-                      </span>
-                      <svg className="h-[21px] w-[21px] text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    </div>
-                    <input
-                      id="date_of_birth"
-                      name="date_of_birth"
-                      type="date"
-                      value={formData.date_of_birth ?? ""}
-                      onChange={handleChange}
-                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    />
-                  </div>
+                  <input
+                    id="date_of_birth"
+                    name="date_of_birth"
+                    type="date"
+                    value={formData.date_of_birth ?? ""}
+                    onChange={handleChange}
+                    max={today}
+                    className={`${inputClassName} h-[56px] date-time-icon-glow`}
+                  />
                 </div>
 
                 <div>
                   <label htmlFor="anniversary" className={labelClassName}>
                     Anniversary (Optional)
                   </label>
-                  <div className="relative w-full">
-                    <div className={`${inputClassName} flex h-[56px] w-full items-center justify-between`}>
-                      <span className={formData.anniversary ? "text-white text-[14.5px] sm:text-[15px]" : "text-[14.5px] text-white/35 sm:text-[15px]"}>
-                         {formData.anniversary ? formData.anniversary.split('-').reverse().join(' / ') : "DD / MM / YYYY"}
-                      </span>
-                      <svg className="h-[21px] w-[21px] text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    </div>
-                    <input
-                      id="anniversary"
-                      name="anniversary"
-                      type="date"
-                      value={formData.anniversary ?? ""}
-                      onChange={handleChange}
-                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    />
-                  </div>
+                  <input
+                    id="anniversary"
+                    name="anniversary"
+                    type="date"
+                    value={formData.anniversary ?? ""}
+                    onChange={handleChange}
+                    max={today}
+                    className={`${inputClassName} h-[56px] date-time-icon-glow`}
+                  />
                 </div>
               </div>
             </motion.div>
@@ -844,23 +901,16 @@ export default function BookingForm({ onSubmitBooking }: BookingFormProps) {
                     <label htmlFor="party_date" className={labelClassName}>
                       Party Date
                     </label>
-                    <div className="relative w-full">
-                      <div className={`${inputClassName} flex h-[56px] w-full items-center justify-between`}>
-                        <span className={formData.party_date ? "text-white text-[14.5px] sm:text-[15px]" : "text-[14.5px] text-white/35 sm:text-[15px]"}>
-                           {formData.party_date ? formData.party_date.split('-').reverse().join(' / ') : "DD / MM / YYYY"}
-                        </span>
-                        <svg className="h-[21px] w-[21px] text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                      </div>
-                      <input
-                        id="party_date"
-                        name="party_date"
-                        type="date"
-                        value={formData.party_date}
-                        onChange={handleChange}
-                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                        required
-                      />
-                    </div>
+                    <input
+                      id="party_date"
+                      name="party_date"
+                      type="date"
+                      value={formData.party_date}
+                      onChange={handleChange}
+                      min={today}
+                      className={`${inputClassName} h-[56px] date-time-icon-glow`}
+                      required
+                    />
                   </div>
 
                   <div className="min-w-0 w-full">

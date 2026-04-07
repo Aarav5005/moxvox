@@ -242,7 +242,15 @@
   }
 }
 
-.date-time-icon-white::-webkit-calendar-picker-indicator {
-  filter: brightness(0) invert(1);
+.date-time-icon-glow::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(212, 175, 55, 0.45));
+  opacity: 0.95;
+  transition: filter 0.25s ease, opacity 0.25s ease;
+}
+
+.date-time-icon-glow:hover::-webkit-calendar-picker-indicator,
+.date-time-icon-glow:focus::-webkit-calendar-picker-indicator,
+.date-time-icon-glow:focus-within::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(212, 175, 55, 0.75));
   opacity: 1;
 }

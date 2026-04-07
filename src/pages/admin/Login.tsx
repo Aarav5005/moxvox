@@ -1,7 +1,7 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { login } from "@/services/authService";
+import { getCurrentUser, login } from "@/services/authService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -9,6 +9,27 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const redirectIfAlreadyLoggedIn = async () => {
+      try {
+        const { data: { user } } = await getCurrentUser();
+        if (!cancelled && user) {
+          navigate("/admin/dashboard", { replace: true });
+        }
+      } catch {
+        // Ignore here and allow manual login.
+      }
+    };
+
+    void redirectIfAlreadyLoggedIn();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,7 +46,7 @@ export default function Login() {
 
       if (data.session) {
         setSubmitting(false);
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else {
         setSubmitting(false);
         alert("Login failed. Please try again.");

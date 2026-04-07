@@ -51,7 +51,7 @@ function normalizeMenuItems(value: unknown): string[] {
  * Ensures that empty strings in the payload are converted to null for fields
  * that should be NULL in the database (like time, date, etc.).
  */
-export function sanitizePayload<T extends Record<string, any>>(data: T): T {
+export function sanitizePayload<T extends Record<string, unknown>>(data: T): T {
   const fieldsToNullify = [
     "party_time",
     "starter_time",
@@ -62,15 +62,15 @@ export function sanitizePayload<T extends Record<string, any>>(data: T): T {
     "payment_mode",
   ];
 
-  const sanitized = { ...data };
+  const sanitized: Record<string, unknown> = { ...data };
   
   fieldsToNullify.forEach((field) => {
-    if (field in sanitized && (sanitized as any)[field] === "") {
-      (sanitized as any)[field] = null;
+    if (sanitized[field] === "") {
+      sanitized[field] = null;
     }
   });
 
-  return sanitized;
+  return sanitized as T;
 }
 
 function normalizeBookingRow(row: Booking): Booking {

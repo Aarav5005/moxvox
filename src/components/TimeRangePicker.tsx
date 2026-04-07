@@ -18,6 +18,8 @@ export function TimeRangePicker({ id, value, onChange, className, disabled }: Ti
     return { h: hour, m: minute, p: period };
   };
 
+  type TimeParts = ReturnType<typeof setupInternalState>;
+
   const [start, setStart] = useState(setupInternalState(start24));
   const [end, setEnd] = useState(setupInternalState(end24));
 
@@ -27,7 +29,7 @@ export function TimeRangePicker({ id, value, onChange, className, disabled }: Ti
     setEnd(setupInternalState(e24));
   }, [value]);
 
-  const triggerChange = (newStart: any, newEnd: any) => {
+  const triggerChange = (newStart: TimeParts, newEnd: TimeParts) => {
     const s24 = convertTo24Hour(newStart.h, newStart.m, newStart.p);
     const e24 = convertTo24Hour(newEnd.h, newEnd.m, newEnd.p);
     onChange(combineTo12HourRange(s24, e24));
