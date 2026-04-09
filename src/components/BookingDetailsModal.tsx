@@ -62,8 +62,12 @@ const MENU_CATEGORY_GROUPS: Array<{ label: string; items: string[] }> = [
   { label: "Salad", items: ["Garden Fresh Salad", "Onion Ring Salad", "Kachumbar Salad", "Corn Pineapple Salad"] },
   { label: "Chutney", items: ["Garlic Sauce", "Mint Sauce", "Schezwan Sauce", "Mayo Sauce", "Garlic Chutney"] },
   { label: "Ice Cream", items: ["Vanilla", "Strawberry", "Chocolate", "Butterscotch", "Vanilla with Chocolate Sauce", "Mix Ice Cream"] },
+  { label: "Kuch Chatpata Sa", items: ["Sev Dahi Puri", "Aloo Chana Chaat", "Pani Puri", "Dahi Bhalla", "Bhel Puri"] },
+  { label: "Curd Preparation", items: ["Mix Veg Raita", "Boondi Raita", "Onion Raita", "Fry Raita", "Pineapple Raita", "Mint Tadka Raita"] },
   { label: "Papad", items: ["Mini Khichiya", "Fried Papad", "Plain Roasted Papad", "Triangle Fryums"] },
 ];
+
+const MENU_CATEGORY_LABELS = MENU_CATEGORY_GROUPS.map((group) => group.label);
 
 export default function BookingDetailsModal({
   booking,
@@ -78,7 +82,9 @@ export default function BookingDetailsModal({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Booking | null>(null);
-  const [menuItemsInput, setMenuItemsInput] = useState("");
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState(MENU_CATEGORY_LABELS[0] || "");
+  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
+  const [showAllSelectedMenuItems, setShowAllSelectedMenuItems] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -128,7 +134,9 @@ export default function BookingDetailsModal({
     if (isOpen) {
       setIsEditing(false);
       setEditData(null);
-      setMenuItemsInput("");
+      setSelectedMenuCategory(MENU_CATEGORY_LABELS[0] || "");
+      setSelectedMenuItems([]);
+      setShowAllSelectedMenuItems(false);
       setShowPdfMenu(false);
       syncVerificationFromSession();
     }
@@ -147,13 +155,27 @@ export default function BookingDetailsModal({
   }, [isOpen, syncVerificationFromSession]);
 
   const handleEdit = () => {
-    setEditData(booking);
-    const initialMenuText = Array.isArray(booking?.menu_items)
-      ? booking.menu_items.filter(Boolean).join(", ")
-      : typeof booking?.menu_items === "string"
-        ? booking.menu_items
-        : "";
-    setMenuItemsInput(initialMenuText);
+    const normalizeYesNo = (value: unknown) => (isYesValue(value) ? "Yes" : "No");
+
+    setEditData(
+      booking
+        ? {
+            ...booking,
+            starter_required: normalizeYesNo(booking.starter_required),
+            maincourse_required: normalizeYesNo(booking.maincourse_required),
+            dj_required: normalizeYesNo(booking.dj_required),
+            jockey_required: normalizeYesNo(booking.jockey_required),
+          }
+        : booking
+    );
+    const rawMenuItems = booking?.menu_items as unknown;
+    const initialMenuItems = Array.isArray(rawMenuItems)
+      ? rawMenuItems
+      : typeof rawMenuItems === "string"
+        ? rawMenuItems.split(/[\n,]/)
+        : [];
+    setSelectedMenuItems(initialMenuItems.map((item) => String(item).trim()).filter(Boolean));
+    setShowAllSelectedMenuItems(false);
     setIsEditing(true);
   };
 
@@ -212,17 +234,14 @@ export default function BookingDetailsModal({
     if (!editData || !onUpdate) return;
     setIsSaving(true);
     try {
-      const parsedMenuItems = menuItemsInput
-        .split(/[\n,]/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-
       await onUpdate({
         ...editData,
-        menu_items: parsedMenuItems,
+        menu_items: selectedMenuItems,
       });
       setIsEditing(false);
-      setMenuItemsInput("");
+      setSelectedMenuCategory(MENU_CATEGORY_LABELS[0] || "");
+      setSelectedMenuItems([]);
+      setShowAllSelectedMenuItems(false);
       onClose();
     } finally {
       setIsSaving(false);
@@ -244,7 +263,9 @@ export default function BookingDetailsModal({
   const handleCancel = () => {
     setIsEditing(false);
     setEditData(null);
-    setMenuItemsInput("");
+    setSelectedMenuCategory(MENU_CATEGORY_LABELS[0] || "");
+    setSelectedMenuItems([]);
+    setShowAllSelectedMenuItems(false);
   };
 
   const handleProtectedEdit = () => {
@@ -331,11 +352,28 @@ export default function BookingDetailsModal({
     return String(value);
   };
 
-  const menuItemsText = Array.isArray(displayData.menu_items)
-    ? displayData.menu_items.filter(Boolean).join(", ")
-    : typeof displayData.menu_items === "string"
-      ? displayData.menu_items
+  const rawDisplayMenuItems = displayData.menu_items as unknown;
+  const menuItemsText = Array.isArray(rawDisplayMenuItems)
+    ? rawDisplayMenuItems.filter(Boolean).join(", ")
+    : typeof rawDisplayMenuItems === "string"
+      ? rawDisplayMenuItems
       : "";
+
+  const toggleMenuItemSelection = (item: string) => {
+    setSelectedMenuItems((prev) =>
+      prev.includes(item) ? prev.filter((selected) => selected !== item) : [...prev, item]
+    );
+  };
+
+  const removeSelectedMenuItem = (item: string) => {
+    setSelectedMenuItems((prev) => prev.filter((selected) => selected !== item));
+  };
+
+  const selectedCategoryItems =
+    MENU_CATEGORY_GROUPS.find((group) => group.label === selectedMenuCategory)?.items || [];
+
+  const previewSelectedMenuItems = selectedMenuItems.slice(0, 4).join(", ");
+  const hiddenSelectedMenuCount = Math.max(selectedMenuItems.length - 4, 0);
 
   const formatTime = (time: unknown) => {
     const timeStr = String(time || "");
@@ -414,6 +452,10 @@ export default function BookingDetailsModal({
     const contentWidth = pageWidth - margin * 2;
     const headerHeight = 24;
     const footerHeight = 9;
+    const contentBottomY = pageHeight - footerHeight - 3;
+    const headerTitle = "BOOKING CONFIRMATION";
+    const headerSubtitle = "Customer Event Dossier";
+    let pageNumber = 1;
     let y = headerHeight + 5;
 
     const money = (value: unknown) => {
@@ -428,6 +470,11 @@ export default function BookingDetailsModal({
       const trimmed = lines.slice(0, maxLines);
       trimmed[maxLines - 1] = `${trimmed[maxLines - 1]}...`;
       return trimmed;
+    };
+
+    const hasMeaningfulText = (value: unknown) => {
+      const text = String(value ?? "").trim();
+      return !!text && !/^n\/?a$/i.test(text);
     };
 
     const addHeader = (title: string, subtitle: string) => {
@@ -469,7 +516,20 @@ export default function BookingDetailsModal({
       doc.setTextColor(90, 95, 107);
       doc.setFontSize(7.1);
       doc.text("Confidential business document • MOX VOX Event Management", margin, footerY + 5.5);
-      doc.text("Page 1 of 1", pageWidth - margin, footerY + 5.5, { align: "right" });
+      doc.text(`Page ${pageNumber}`, pageWidth - margin, footerY + 5.5, { align: "right" });
+    };
+
+    const startNewPage = () => {
+      drawFooter();
+      doc.addPage();
+      pageNumber += 1;
+      addHeader(headerTitle, headerSubtitle);
+    };
+
+    const ensureSpace = (requiredHeight: number) => {
+      if (y + requiredHeight > contentBottomY) {
+        startNewPage();
+      }
     };
 
     const addSectionTitle = (title: string) => {
@@ -485,8 +545,9 @@ export default function BookingDetailsModal({
     };
 
     const addKeyValueSection = (title: string, rows: Array<[string, unknown]>, sectionHeight: number) => {
-      addSectionTitle(title);
       const cardHeight = sectionHeight;
+      ensureSpace(8.2 + cardHeight + 2.5);
+      addSectionTitle(title);
 
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(223, 227, 235);
@@ -518,14 +579,15 @@ export default function BookingDetailsModal({
         rowY += rowHeight;
       });
 
-      y += cardHeight + 2.5;
+      y += cardHeight + 1.5;
     };
 
     const addMenuSection = (items: string, sectionHeight: number) => {
-      addSectionTitle("Menu Selection");
       const normalizedItems = items.split(",").map((item) => item.trim()).filter(Boolean);
       const groupedItems = getCategorizedMenuGroups(normalizedItems);
       const cardHeight = sectionHeight;
+      ensureSpace(8.2 + cardHeight + 2.5);
+      addSectionTitle("Menu Selection");
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(223, 227, 235);
       doc.roundedRect(margin, y, contentWidth, cardHeight, 2, 2, "FD");
@@ -610,13 +672,13 @@ export default function BookingDetailsModal({
         doc.text(`+ ${hiddenGroups} more category groups`, leftX, Math.min(innerBottom, markerY));
       }
 
-      y += cardHeight + 2.5;
+      y += cardHeight + 1.5;
     };
 
     const addBillingSection = () => {
-      addSectionTitle("Billing Details");
-
       const cardHeight = 56;
+      ensureSpace(8.2 + cardHeight + 2.5);
+      addSectionTitle("Billing Details");
       const cardTop = y;
       const cardBottom = y + cardHeight;
       const centerX = margin + contentWidth / 2;
@@ -685,12 +747,12 @@ export default function BookingDetailsModal({
       doc.setTextColor(33, 37, 45);
       doc.text(money(displayData.billing_due_amount), pageWidth - margin - 4, dueBarY + 5, { align: "right" });
 
-      y += cardHeight + 2.5;
+      y += cardHeight + 1.5;
     };
 
     const baseAmount = displayData.billing_pax * displayData.guests + displayData.billing_dj + displayData.billing_decor;
 
-    addHeader("BOOKING CONFIRMATION", "Customer Event Dossier");
+    addHeader(headerTitle, headerSubtitle);
 
     addKeyValueSection("Customer Information", [
       ["Name", displayData.customer_name],
@@ -707,18 +769,31 @@ export default function BookingDetailsModal({
       ["Spice Preference", displayData.spicy_level],
     ], 52);
 
-    addKeyValueSection("Food Timing & DJ Details", [
+    const djEnabledForCustomerPdf = isYesValue(displayData.dj_required);
+    const customerTimingRows: Array<[string, unknown]> = [
       ["Starter Service", `${displayData.starter_required} • ${formatTime(displayData.starter_time)}`],
       ["Maincourse Service", `${displayData.maincourse_required} • ${formatTime(displayData.maincourse_time)}`],
-      ["DJ Required", `${formatValue(displayData.dj_required)} • ${isYesValue(displayData.dj_required) ? formatTime(displayData.dj_time) : "N/A"}`],
-      ["Jockey", displayData.jockey_required],
-    ], 24);
+      ["DJ Required", formatValue(displayData.dj_required)],
+    ];
+
+    if (djEnabledForCustomerPdf) {
+      customerTimingRows.push(["DJ Jockey", displayData.jockey_required]);
+      customerTimingRows.push(["DJ Time", formatTime(displayData.dj_time)]);
+    }
+
+    addKeyValueSection(
+      "Food Timing & DJ Details",
+      customerTimingRows,
+      djEnabledForCustomerPdf ? 28 : 20
+    );
 
     addMenuSection(menuItemsText || "N/A", 67);
 
     addBillingSection();
 
-    addKeyValueSection("Other Details", [["Other Details", String(displayData.other_details || "N/A").slice(0, 100)]], 11.5);
+    if (hasMeaningfulText(displayData.other_details)) {
+      addKeyValueSection("Other Details", [["Other Details", String(displayData.other_details).slice(0, 100)]], 9.5);
+    }
 
     drawFooter();
 
@@ -735,6 +810,7 @@ export default function BookingDetailsModal({
     const contentWidth = pageWidth - margin * 2;
     const headerHeight = 24;
     const footerHeight = 10;
+    let pageNumber = 1;
     let y = headerHeight + 7;
 
     const menuItems = Array.isArray(displayData.menu_items)
@@ -771,7 +847,7 @@ export default function BookingDetailsModal({
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.text("Kitchen copy • Internal operations use", margin, footerY + 6.2);
-      doc.text("All timings in local event standard", pageWidth - margin, footerY + 6.2, { align: "right" });
+      doc.text(`All timings in local event standard • Page ${pageNumber}`, pageWidth - margin, footerY + 6.2, { align: "right" });
     };
 
     const contentBottomY = pageHeight - footerHeight - 4;
@@ -779,7 +855,18 @@ export default function BookingDetailsModal({
     const startNewPage = () => {
       drawFooter();
       doc.addPage();
+      pageNumber += 1;
       addHeader();
+    };
+
+    const fitSingleLine = (text: unknown, width: number) => {
+      const normalized = String(text ?? "").trim();
+      if (!normalized) return "";
+      const wrapped = doc.splitTextToSize(normalized, width);
+      const lines = Array.isArray(wrapped) ? wrapped : [String(wrapped)];
+      if (lines.length <= 1) return String(lines[0] || "");
+      const first = String(lines[0] || "").replace(/[\s.,;:!?-]+$/, "");
+      return `${first}...`;
     };
 
     const ensureSpace = (requiredHeight: number) => {
@@ -806,18 +893,32 @@ export default function BookingDetailsModal({
       const rightX = margin + contentWidth / 2 + 2;
       const rowTop = y;
       const rowHeight = 7.4;
+      const leftColWidth = contentWidth / 2 - 8;
+      const rightColWidth = contentWidth / 2 - 8;
+      const rightLabelText = String(rightLabel || "").trim();
+      const rightValueText =
+        rightValue === null || rightValue === undefined ? "" : String(rightValue).trim();
+      const hasRightColumn = rightLabelText.length > 0 || rightValueText.length > 0;
+      const leftLabelShort = fitSingleLine(leftLabel.toUpperCase(), leftColWidth);
+      const leftValueShort = fitSingleLine(formatValue(leftValue), leftColWidth);
+      const rightLabelShort = hasRightColumn ? fitSingleLine(rightLabelText.toUpperCase(), rightColWidth) : "";
+      const rightValueShort = hasRightColumn ? fitSingleLine(formatValue(rightValue), rightColWidth) : "";
 
       doc.setFont("helvetica", "bold");
       doc.setTextColor(107, 113, 127);
       doc.setFontSize(7.1);
-      doc.text(leftLabel.toUpperCase(), leftX, rowTop + 0.8);
-      doc.text(rightLabel.toUpperCase(), rightX, rowTop + 0.8);
+      doc.text(leftLabelShort, leftX, rowTop + 0.8);
+      if (hasRightColumn) {
+        doc.text(rightLabelShort, rightX, rowTop + 0.8);
+      }
 
       doc.setFont("helvetica", "bold");
       doc.setTextColor(30, 34, 42);
       doc.setFontSize(8.6);
-      doc.text(formatValue(leftValue), leftX, rowTop + 4.7);
-      doc.text(formatValue(rightValue), rightX, rowTop + 4.7);
+      doc.text(leftValueShort, leftX, rowTop + 4.7);
+      if (hasRightColumn) {
+        doc.text(rightValueShort, rightX, rowTop + 4.7);
+      }
 
       y += rowHeight;
       doc.setDrawColor(238, 240, 244);
@@ -958,13 +1059,25 @@ export default function BookingDetailsModal({
     y += 1.5;
 
     addSectionTitle("Food Timing & DJ Details");
+    const djEnabledForKitchenPdf = isYesValue(displayData.dj_required);
+    const kitchenTimingRows: Array<[string, unknown, string, unknown]> = [
+      ["Starter Required", displayData.starter_required, "Starter Time", formatTime(displayData.starter_time)],
+      ["Maincourse Required", displayData.maincourse_required, "Maincourse Time", formatTime(displayData.maincourse_time)],
+      ["DJ Required", formatValue(displayData.dj_required), djEnabledForKitchenPdf ? "DJ Jockey" : "", djEnabledForKitchenPdf ? formatValue(displayData.jockey_required) : ""],
+    ];
+
+    if (djEnabledForKitchenPdf) {
+      kitchenTimingRows.push(["DJ Time", formatTime(displayData.dj_time), "", ""]);
+    }
+
+    const timingCardHeight = 6 + kitchenTimingRows.length * 7.4;
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(223, 227, 235);
-    doc.roundedRect(margin, y, contentWidth, 28, 2, 2, "FD");
+    doc.roundedRect(margin, y, contentWidth, timingCardHeight, 2, 2, "FD");
     y += 6;
-    addGridRow("Starter Required", displayData.starter_required, "Starter Time", formatTime(displayData.starter_time));
-    addGridRow("Maincourse Required", displayData.maincourse_required, "Maincourse Time", formatTime(displayData.maincourse_time));
-    addGridRow("DJ Required", formatValue(displayData.dj_required), "DJ Time", isYesValue(displayData.dj_required) ? formatTime(displayData.dj_time) : "N/A");
+    kitchenTimingRows.forEach(([leftLabel, leftValue, rightLabel, rightValue]) => {
+      addGridRow(leftLabel, leftValue, rightLabel, rightValue);
+    });
     y += 1.5;
 
     addMenuChecklist();
@@ -1032,11 +1145,20 @@ export default function BookingDetailsModal({
       }
 
       if (type === "select" && options) {
+        const rawSelectValue = editData[field] as unknown;
+        const normalizedSelectValue =
+          field === "starter_required" ||
+          field === "maincourse_required" ||
+          field === "dj_required" ||
+          field === "jockey_required"
+            ? (isYesValue(rawSelectValue) ? "Yes" : "No")
+            : String(rawSelectValue ?? "");
+
         return (
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">{label}</p>
             <select
-              value={editData[field] as string}
+              value={normalizedSelectValue}
               onChange={(e) => handleChange(field, e.target.value)}
               className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
             >
@@ -1120,6 +1242,9 @@ export default function BookingDetailsModal({
       </div>
     );
   };
+
+  const currentDjRequired = isEditing && editData ? editData.dj_required : displayData.dj_required;
+  const isDjEnabled = isYesValue(currentDjRequired);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm">
@@ -1212,13 +1337,97 @@ export default function BookingDetailsModal({
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Menu Selection</h3>
             <div className="rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {isEditing && editData ? (
-                <textarea
-                  value={menuItemsInput}
-                  onChange={(e) => setMenuItemsInput(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
-                  rows={3}
-                  placeholder="Enter menu items separated by commas or new lines"
-                />
+                <div className="space-y-3">
+                  <div className="flex flex-nowrap items-center gap-4 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {MENU_CATEGORY_LABELS.map((category) => {
+                      const isActive = selectedMenuCategory === category;
+                      return (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => setSelectedMenuCategory(category)}
+                          className={`shrink-0 text-sm font-semibold transition ${
+                            isActive
+                              ? "text-[#D4AF37] drop-shadow-[0_0_10px_rgba(212,175,55,0.45)]"
+                              : "text-[#D4AF37CC] hover:text-[#D4AF37]"
+                          }`}
+                        >
+                          {category}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid max-h-[220px] grid-cols-[repeat(auto-fit,minmax(140px,1fr))] content-start gap-2 overflow-y-auto p-1 pr-2 [scrollbar-width:thin]">
+                    {selectedCategoryItems.map((item) => {
+                      const isSelected = selectedMenuItems.includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => toggleMenuItemSelection(item)}
+                          className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
+                            isSelected
+                              ? "border-[#D4AF37] bg-[#D4AF371A] text-[#F0D981] shadow-[0_0_16px_rgba(212,175,55,0.24)]"
+                              : "border-white/10 bg-[#111111] text-white/80 hover:border-[#D4AF3760] hover:text-white"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {selectedMenuItems.length > 0 ? (
+                    <div className="rounded-xl border border-[#D4AF3738] bg-[#D4AF3714] px-3 py-2 text-sm text-[#f3df9f]">
+                      {showAllSelectedMenuItems ? (
+                        <div>
+                          <div className="mb-2 font-medium text-[#f3df9f]">Selected Items</div>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedMenuItems.map((item) => (
+                              <span
+                                key={item}
+                                className="inline-flex items-center gap-2 rounded-full border border-[#D4AF3760] bg-[#111111] px-3 py-1 text-xs text-[#f3df9f]"
+                              >
+                                {item}
+                                <button
+                                  type="button"
+                                  onClick={() => removeSelectedMenuItem(item)}
+                                  className="text-[#D4AF37] transition hover:text-[#f7e4a8]"
+                                  aria-label={`Remove ${item}`}
+                                >
+                                  x
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllSelectedMenuItems(false)}
+                            className="mt-2 text-xs font-medium text-[#D4AF37] hover:text-[#f7e4a8]"
+                          >
+                            Show less
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <span>Selected: {previewSelectedMenuItems}</span>
+                          {hiddenSelectedMenuCount > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllSelectedMenuItems(true)}
+                              className="ml-2 text-xs font-medium text-[#D4AF37] hover:text-[#f7e4a8]"
+                            >
+                              (+{hiddenSelectedMenuCount} more)
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm font-semibold text-white/60">No menu items selected yet.</p>
+                  )}
+                </div>
               ) : menuItemsText ? (
                 <p className="text-sm font-semibold text-[#efe6cf]">{menuItemsText}</p>
               ) : (
@@ -1232,10 +1441,12 @@ export default function BookingDetailsModal({
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">DJ Details</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {renderField("DJ Required", "dj_required", "select", ["Yes", "No"])}
-              {renderField("Jockey", "jockey_required", "select", ["Yes", "No"])}
-              <div className="col-span-2 md:col-span-4">
-                {renderField("DJ Time", "dj_time", "time")}
-              </div>
+              {isDjEnabled ? renderField("DJ Jockey", "jockey_required", "select", ["Yes", "No"]) : null}
+              {isDjEnabled ? (
+                <div className="col-span-2 md:col-span-4">
+                  {renderField("DJ Time", "dj_time", "time")}
+                </div>
+              ) : null}
             </div>
           </div>
 
