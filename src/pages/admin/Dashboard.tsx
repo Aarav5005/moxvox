@@ -30,6 +30,7 @@ export default function Dashboard() {
   const { bookings, loading, addBooking, removeBooking, editBooking } = useBookings();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [upcomingDateFilter, setUpcomingDateFilter] = useState("");
   const [activeView, setActiveView] = useState<
     "add-booking" | "upcoming-party" | "happy-customers"
   >("add-booking");
@@ -41,7 +42,7 @@ export default function Dashboard() {
   }, []);
 
   const handleUpdateBooking = async (updatedBooking: Booking): Promise<boolean> => {
-    const { customer_name, phone, party_date, party_time, party_end_time, starter_required, starter_time, maincourse_required, maincourse_time, guests, food_type, spicy_level, package_type, venue_type, occasion, dj_required, dj_time, other_details, menu_items, billing_pax, billing_dj, billing_decor, billing_gst, billing_advance, billing_g_amount, billing_due_amount } = updatedBooking;
+    const { customer_name, phone, party_date, party_time, party_end_time, starter_required, starter_time, maincourse_required, maincourse_time, guests, jain_members, food_type, spicy_level, package_type, venue_type, occasion, dj_required, dj_time, other_details, payment_note, menu_items, billing_pax, billing_dj, billing_decor, billing_gst, billing_advance, billing_g_amount, billing_due_amount } = updatedBooking;
     
     await editBooking(updatedBooking, {
       customer_name,
@@ -54,6 +55,7 @@ export default function Dashboard() {
       maincourse_required,
       maincourse_time,
       guests,
+      jain_members,
       food_type,
       spicy_level,
       package_type,
@@ -62,6 +64,7 @@ export default function Dashboard() {
       dj_required,
       dj_time,
       other_details,
+      payment_note,
       menu_items,
       billing_pax,
       billing_dj,
@@ -93,6 +96,14 @@ export default function Dashboard() {
     return { upcomingBookings: upcoming, happyCustomers: completed };
   }, [bookings, now]);
 
+  const filteredUpcomingBookings = useMemo(() => {
+    if (!upcomingDateFilter) {
+      return upcomingBookings;
+    }
+
+    return upcomingBookings.filter((booking) => booking.party_date === upcomingDateFilter);
+  }, [upcomingBookings, upcomingDateFilter]);
+
   const handleLogout = async () => {
     if (isLoggingOut) return;
 
@@ -110,15 +121,15 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-[#060606] bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.14),transparent_40%),linear-gradient(180deg,#080808_0%,#050505_100%)] pb-0">
-      <header className="sticky top-0 z-40 w-full bg-[#060606]/85 backdrop-blur-md pt-4 pb-4 sm:pt-6 sm:pb-5">
-        <div className="relative mx-auto max-w-[1000px] px-4 sm:px-6">
+      <header className="sticky top-0 z-40 w-full bg-[#060606]/85 backdrop-blur-md pt-4 pb-4 sm:pt-6 sm:pb-5 md:pt-7 md:pb-6">
+        <div className="relative mx-auto max-w-[1000px] px-4 sm:px-6 md:px-8">
           <img
             src="/mox-vox-logo.svg"
             alt="MoxVox logo"
-            className="absolute right-8 -top-3 h-16 w-16 object-contain sm:-top-5 sm:right-12 sm:h-20 sm:w-20"
+            className="absolute right-8 -top-3 h-16 w-16 object-contain sm:-top-5 sm:right-12 sm:h-20 sm:w-20 md:-top-6 md:right-14 md:h-24 md:w-24"
           />
-          <h1 className="pr-20 font-display text-2xl italic tracking-[0.07em] text-[#D4AF37] sm:pr-24 sm:text-3xl">Booking Dashboard</h1>
-          <nav className="mt-3 grid grid-cols-3 gap-1 text-center text-[13px] font-semibold sm:flex sm:flex-wrap sm:justify-start sm:gap-4 sm:text-sm">
+          <h1 className="pr-20 font-display text-2xl italic tracking-[0.07em] text-[#D4AF37] sm:pr-24 sm:text-3xl md:pr-28 md:text-4xl">Booking Dashboard</h1>
+          <nav className="mt-3 grid grid-cols-3 gap-1 text-center text-[13px] font-semibold sm:flex sm:flex-wrap sm:justify-start sm:gap-4 sm:text-sm md:gap-5 md:text-base">
             <button
               type="button"
               onClick={() => setActiveView("add-booking")}
@@ -172,11 +183,39 @@ export default function Dashboard() {
               Loading bookings...
             </div>
           ) : (
-            <BookingTable
-              bookings={upcomingBookings}
-              onDelete={removeBooking}
-              onUpdate={handleUpdateBooking}
-            />
+            <>
+              <div className="rounded-2xl border border-[#D4AF3730] bg-[rgba(255,255,255,0.03)] p-4 text-white shadow-[0_16px_40px_rgba(0,0,0,0.42)] backdrop-blur-md">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/65">Filter Upcoming By Date</p>
+                    <input
+                      type="date"
+                      value={upcomingDateFilter}
+                      onChange={(event) => setUpcomingDateFilter(event.target.value)}
+                      className="h-11 w-full rounded-lg border border-white/15 bg-[#101010] px-3 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730] sm:w-[220px]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#f4d986]">Showing {filteredUpcomingBookings.length}</span>
+                    <button
+                      type="button"
+                      onClick={() => setUpcomingDateFilter("")}
+                      disabled={!upcomingDateFilter}
+                      className="rounded-lg border border-white/15 bg-[#141414] px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/80 transition hover:border-[#D4AF37] hover:text-[#f4d986] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <BookingTable
+                bookings={filteredUpcomingBookings}
+                onDelete={removeBooking}
+                onUpdate={handleUpdateBooking}
+              />
+            </>
           )
         ) : null}
 

@@ -57,7 +57,7 @@ const BookingSection = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="glass-card rounded-lg p-6 sm:p-10"
         >
-          <div className="grid sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {bookingOptions.map((option, index) => (
               <a
                 key={option.name}

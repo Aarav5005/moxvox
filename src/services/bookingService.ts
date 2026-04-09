@@ -61,6 +61,7 @@ export function sanitizePayload<T extends Record<string, unknown>>(data: T): T {
     "date_of_birth",
     "anniversary",
     "payment_mode",
+    "payment_note",
   ];
 
   const sanitized: Record<string, unknown> = { ...data };
@@ -75,8 +76,19 @@ export function sanitizePayload<T extends Record<string, unknown>>(data: T): T {
 }
 
 function normalizeBookingRow(row: Booking): Booking {
+  const rowWithDefaults = row as Booking & {
+    jain_members?: number | null;
+    starter_required?: string | null;
+    maincourse_required?: string | null;
+    party_end_time?: string | null;
+  };
+
   return {
     ...row,
+    party_end_time: rowWithDefaults.party_end_time ?? null,
+    starter_required: rowWithDefaults.starter_required || "No",
+    maincourse_required: rowWithDefaults.maincourse_required || "No",
+    jain_members: Number(rowWithDefaults.jain_members || 0),
     menu_items: normalizeMenuItems((row as unknown as { menu_items?: unknown }).menu_items),
   };
 }

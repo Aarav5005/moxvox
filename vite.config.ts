@@ -55,12 +55,11 @@ function verifyAdminApiPlugin() {
 
   let currentAdminEmail = process.env.ADMIN_EMAIL || "";
   let currentAdminPassword = process.env.ADMIN_PASSWORD || "";
-  let currentAdminEditEmail = process.env.ADMIN_EDIT_EMAIL || process.env.ADMIN_EMAIL || "";
-  let currentAdminEditPassword = process.env.ADMIN_EDIT_PASSWORD || process.env.ADMIN_PASSWORD || "";
+  const EDIT_ACTION_PASSWORD = "moxvox@2026";
   const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
   const SESSION_SECRET =
     process.env.ADMIN_SESSION_SECRET ||
-    `${currentAdminEmail}:${currentAdminPassword}:${currentAdminEditEmail}:${currentAdminEditPassword}`;
+    `${currentAdminEmail}:${currentAdminPassword}:${EDIT_ACTION_PASSWORD}`;
   const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
   const RATE_LIMIT_BLOCK_MS = 5 * 60 * 1000;
   const rateLimitByKey = new Map<string, { count: number; windowStart: number; blockedUntil: number }>();
@@ -306,28 +305,17 @@ function verifyAdminApiPlugin() {
           }
 
           if (routeType === "verify-admin-edit") {
-            const success = verifyLogin(
-              readString(parsed?.email),
-              readString(parsed?.password),
-              currentAdminEditEmail,
-              currentAdminEditPassword
-            );
+            const success = readString(parsed?.password) === EDIT_ACTION_PASSWORD;
 
             sendJson(res, success ? 200 : 401, { success });
             return;
           }
 
           if (routeType === "change-admin-edit-password") {
-            changePassword(
-              "ADMIN_EDIT_EMAIL",
-              "ADMIN_EDIT_PASSWORD",
-              () => currentAdminEditEmail,
-              () => currentAdminEditPassword,
-              (nextEmail, nextPassword) => {
-                currentAdminEditEmail = nextEmail;
-                currentAdminEditPassword = nextPassword;
-              }
-            );
+            sendJson(res, 410, {
+              success: false,
+              error: "Edit/delete password is fixed and cannot be changed from API.",
+            });
             return;
           }
 
@@ -381,6 +369,57 @@ function sendWhatsAppApiPlugin() {
     };
   };
 
+  const formatDateToDdmmyyyy = (dateValue: string): string => {
+    const trimmed = String(dateValue || "").trim();
+
+    if (!trimmed || trimmed === "N/A") {
+      return "N/A";
+    }
+
+    const parts = trimmed.split("-");
+    if (parts.length !== 3) {
+      return trimmed;
+    }
+
+    const [year, month, day] = parts;
+    if (!year || !month || !day) {
+      return trimmed;
+    }
+
+    return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
+  };
+
+  const formatTimeTo12Hour = (timeValue: string): string => {
+    const trimmed = String(timeValue || "").trim();
+
+    if (!trimmed || trimmed === "N/A") {
+      return "N/A";
+    }
+
+    const upper = trimmed.toUpperCase();
+    if (upper.includes("AM") || upper.includes("PM")) {
+      return trimmed;
+    }
+
+    const parts = trimmed.split(":");
+    if (parts.length < 2) {
+      return trimmed;
+    }
+
+    const hours = Number(parts[0]);
+    const minutes = Number(parts[1]);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+      return trimmed;
+    }
+
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = String(minutes).padStart(2, "0");
+
+    return `${displayHours}:${displayMinutes} ${period}`;
+  };
+
   const handler: MiddlewareHandler = (req, res) => {
     if (req.method !== "POST") {
       res.statusCode = 405;
@@ -403,19 +442,26 @@ function sendWhatsAppApiPlugin() {
         const name = parsed?.name;
         const date = parsed?.date;
         const partyTime = parsed?.party_time;
+        const partyEndTime = parsed?.party_end_time;
         const starterTime = parsed?.starter_time;
         const mainCourseTime = parsed?.main_course_time;
         const djTime = parsed?.dj_time;
 
         const termsLink = process.env.TERMS_LINK || "https://www.mox-vox.online/terms.html";
 
+        const formattedPartyStart = formatTimeTo12Hour(String(partyTime || "N/A"));
+        const formattedPartyEnd = formatTimeTo12Hour(String(partyEndTime || "N/A"));
+        const formattedPartyTime = formattedPartyEnd !== "N/A"
+          ? `${formattedPartyStart} - ${formattedPartyEnd}`
+          : formattedPartyStart;
+
         const templateParams = [
           String(name || "Guest"),
-          String(date || "N/A"),
-          String(partyTime || "N/A"),
-          String(starterTime || "N/A"),
-          String(mainCourseTime || "N/A"),
-          String(djTime || "N/A"),
+          formatDateToDdmmyyyy(String(date || "N/A")),
+          formattedPartyTime,
+          formatTimeTo12Hour(String(starterTime || "N/A")),
+          formatTimeTo12Hour(String(mainCourseTime || "N/A")),
+          formatTimeTo12Hour(String(djTime || "N/A")),
           termsLink
         ];
 

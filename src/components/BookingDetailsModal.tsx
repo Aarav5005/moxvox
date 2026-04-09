@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Booking } from "@/types/booking";
 import { TimePicker } from "./TimePicker";
 import { TimeRangePicker } from "./TimeRangePicker";
-import { convertTo12Hour, combineTo12HourRange, parse12HourRange } from "@/lib/timeUtils";
+import { convertTo12Hour, combineTo12HourRange, parse12HourRange, formatDateDDMMYYYY } from "@/lib/timeUtils";
 
 type BookingDetailsModalProps = {
   booking: Booking | null;
@@ -14,6 +14,56 @@ type BookingDetailsModalProps = {
   onDelete?: (booking: Booking) => Promise<void>;
   onUpdate?: (booking: Booking) => Promise<boolean>;
 };
+
+const MENU_CATEGORY_GROUPS: Array<{ label: string; items: string[] }> = [
+  {
+    label: "Welcome Drinks",
+    items: ["Cold Drinks", "Virgin Mojito", "Blue Lagoon", "Kiwi Classic", "Lemon Water", "Aam Panna", "Lemon Ice Tea", "Orange Blossom"],
+  },
+  { label: "Soups", items: ["Cream of Tomato", "Hot n Sour", "Veg Manchow", "Corn Soup", "Cream of Veg Soup", "Veg Clear Soup"] },
+  {
+    label: "Starter",
+    items: [
+      "Veg Manchurian Dry", "Veg Manchurian Gravy", "Veg Spring Roll", "Veg 65", "Dragon Potato", "Chilli Potato", "Honey Chilli Potato",
+      "Potato Chilli Ball", "French Fries", "Red Sauce Pasta", "Assorted Pakode", "Ring Onion", "Peanut Masala", "Hara Bhara Kabab",
+      "Mix Veg Kabab", "Corn Kabab", "Aloo Methi Tikki", "Crispy Veg", "Chowmein", "Hakka Noodles", "Fried Rice", "Bread Pakoda",
+      "Chilly Garlic Noodles", "Pink Sauce Pasta",
+    ],
+  },
+  {
+    label: "Special Starter",
+    items: [
+      "Chilli Garlic Paneer", "Chilly Paneer Dry", "Chilly Paneer Gravy", "American Chopsy", "Paneer 65", "Methi Paneer Tikki", "Crispy Paneer",
+      "Mini Pizza", "Corn Cheese Kabab", "Corn Fritters", "Veg Cheese Maggie", "Chilli Milli Kabab", "Hot Garlic Chilli Veg", "Shanghai Manchurian",
+      "Sweet Chilli Potato", "Tandoori Aloo Achari", "Hariyali Tandoori Aloo", "Masala Tadka Pav", "Pav Bhaji", "Coleslaw Sandwich", "Masala Tikka Pav",
+    ],
+  },
+  {
+    label: "Paneer Preparation",
+    items: [
+      "Paneer Butter Masala", "Paneer Tikka Masala", "Paneer Lababdar", "Paneer Handi Lazeez", "Paneer Matar Masala", "Kadai Paneer", "Paneer Jwalamukhi",
+      "Paneer Angara", "Paneer Do Pyaza", "Paneer Khurchan", "Palak Paneer",
+    ],
+  },
+  {
+    label: "Veg Preparation",
+    items: [
+      "Malai Kofta (Veg Gravy)", "Veg Kofta Curry", "Veg Kolhapuri", "Veg Jaipuri", "Dum Aloo", "Jeera Aloo", "Aloo Pyaj", "Aloo Matar", "Gobhi Matar",
+      "Chef Special Aloo", "Gobhi Adraki", "Mix Veg", "Govind Gatta", "Sev Tomato", "Pindi Chana Masala", "Aloo Capsicum", "Veg. Angara", "Corn Palak",
+      "Palak Lahsuni", "Spl. Aloo Gobhi Adaraki", "Punjabi Kofta Curry", "Veg Jaipur",
+    ],
+  },
+  { label: "Dal Preparation", items: ["Dal Fry", "Dal Tadka", "Dal Makhani", "Rajasthani Kadi"] },
+  {
+    label: "Rice Preparation",
+    items: ["Jeera Rice", "Jeera Peas Pulao", "Veg Pulao", "Moti Pulao", "Onion Pulao", "Veg Biryani", "Jodhpuri Biryani", "Hyderabadi Biryani", "Brown Onion Pulao"],
+  },
+  { label: "Indian Breads", items: ["Butter Tandoori Roti", "Tava Roti", "Butter Naan", "Green Chilli Naan", "Garlic Naan", "Butter Laccha Paratha", "Missi Roti"] },
+  { label: "Salad", items: ["Garden Fresh Salad", "Onion Ring Salad", "Kachumbar Salad", "Corn Pineapple Salad"] },
+  { label: "Chutney", items: ["Garlic Sauce", "Mint Sauce", "Schezwan Sauce", "Mayo Sauce", "Garlic Chutney"] },
+  { label: "Ice Cream", items: ["Vanilla", "Strawberry", "Chocolate", "Butterscotch", "Vanilla with Chocolate Sauce", "Mix Ice Cream"] },
+  { label: "Papad", items: ["Mini Khichiya", "Fried Papad", "Plain Roasted Papad", "Triangle Fryums"] },
+];
 
 export default function BookingDetailsModal({
   booking,
@@ -33,21 +83,11 @@ export default function BookingDetailsModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
-  const [verifyEmail, setVerifyEmail] = useState("");
   const [verifyPassword, setVerifyPassword] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [verifyError, setVerifyError] = useState("");
-  const [verifySuccess, setVerifySuccess] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [pendingAction, setPendingAction] = useState<"edit" | "delete" | null>(null);
-  const [verificationMode, setVerificationMode] = useState<"verify" | "change-password">("verify");
   const [showPassword, setShowPassword] = useState(false);
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPdfMenu, setShowPdfMenu] = useState(false);
 
   const clearVerification = useCallback(() => {
@@ -78,12 +118,8 @@ export default function BookingDetailsModal({
   const openVerificationModal = (action: "edit" | "delete") => {
     setPendingAction(action);
     setVerifyError("");
-    setVerifySuccess("");
     setVerifyPassword("");
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmNewPassword("");
-    setVerificationMode("verify");
+    setShowPassword(false);
     setIsVerificationModalOpen(true);
   };
 
@@ -139,6 +175,11 @@ export default function BookingDetailsModal({
 
       if (field === "maincourse_required" && value === "No") {
         updatedData.maincourse_time = null;
+      }
+
+      if (field === "dj_required" && !isYesValue(value)) {
+        updatedData.dj_time = null;
+        updatedData.jockey_required = "No";
       }
 
       // Auto-calculate G. Amount = ((PAX x Guests) + DJ + Decor) + GST Amount
@@ -229,27 +270,18 @@ export default function BookingDetailsModal({
     setIsVerificationModalOpen(false);
     setPendingAction(null);
     setVerifyError("");
-    setVerifySuccess("");
     setVerifyPassword("");
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmNewPassword("");
-    setVerificationMode("verify");
     setShowPassword(false);
-    setShowOldPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
   };
 
   const handleVerifyAdmin = async () => {
-    if (!verifyEmail || !verifyPassword) {
-      setVerifyError("Please enter email and password.");
+    if (!verifyPassword) {
+      setVerifyError("Please enter password.");
       return;
     }
 
     setIsVerifying(true);
     setVerifyError("");
-    setVerifySuccess("");
 
     try {
       const response = await fetch("/api/verify-admin-edit", {
@@ -258,7 +290,6 @@ export default function BookingDetailsModal({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: verifyEmail,
           password: verifyPassword,
         }),
       });
@@ -266,7 +297,7 @@ export default function BookingDetailsModal({
       const result = await response.json();
 
       if (!response.ok || !result?.success) {
-        setVerifyError("Invalid edit credentials.");
+        setVerifyError("Invalid password.");
         return;
       }
 
@@ -275,76 +306,13 @@ export default function BookingDetailsModal({
       localStorage.setItem(ADMIN_VERIFIED_AT_KEY, String(Date.now()));
       setIsVerificationModalOpen(false);
       setVerifyPassword("");
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
+      setShowPassword(false);
       runPendingAction();
       setPendingAction(null);
     } catch {
       setVerifyError("Verification failed. Please try again.");
     } finally {
       setIsVerifying(false);
-    }
-  };
-
-  const handleChangeAdminPassword = async () => {
-    if (!verifyEmail || !oldPassword || !newPassword || !confirmNewPassword) {
-      setVerifyError("Please enter email, old password, and new password.");
-      return;
-    }
-
-    if (newPassword.length < 4) {
-      setVerifyError("New password must be at least 4 characters.");
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setVerifyError("New password and confirm password do not match.");
-      return;
-    }
-
-    setIsChangingPassword(true);
-    setVerifyError("");
-    setVerifySuccess("");
-
-    try {
-      const response = await fetch("/api/change-admin-edit-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: verifyEmail,
-          old_password: oldPassword,
-          new_password: newPassword,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result?.success) {
-        setVerifyError(result?.error || "Unable to change password.");
-        return;
-      }
-
-      // Old password has been validated, so this admin session is trusted.
-      setIsVerified(true);
-      localStorage.setItem(ADMIN_VERIFIED_KEY, "true");
-      localStorage.setItem(ADMIN_VERIFIED_AT_KEY, String(Date.now()));
-
-      setVerifySuccess("Password changed successfully.");
-      setVerifyPassword(newPassword);
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setIsVerificationModalOpen(false);
-
-      runPendingAction();
-      setPendingAction(null);
-    } catch {
-      setVerifyError("Change password failed. Please try again.");
-    } finally {
-      setIsChangingPassword(false);
     }
   };
 
@@ -375,6 +343,64 @@ export default function BookingDetailsModal({
     return convertTo12Hour(timeStr);
   };
 
+  const isYesValue = (value: unknown) => {
+    if (typeof value === "boolean") return value;
+    const normalized = String(value || "").trim().toLowerCase();
+    return normalized === "yes" || normalized === "true";
+  };
+
+  const getCategorizedMenuGroups = (rawItems: string[]) => {
+    const selected = rawItems.map((item) => item.trim()).filter(Boolean);
+    const remaining = [...selected];
+    const groups: Array<{ heading: string; items: string[] }> = [];
+
+    MENU_CATEGORY_GROUPS.forEach((category) => {
+      const matched = category.items.filter((menuItem) => remaining.includes(menuItem));
+      if (matched.length === 0) return;
+
+      groups.push({ heading: category.label, items: matched });
+
+      matched.forEach((matchedItem) => {
+        const index = remaining.indexOf(matchedItem);
+        if (index >= 0) remaining.splice(index, 1);
+      });
+    });
+
+    if (remaining.length > 0) {
+      groups.push({ heading: "Other Selection", items: remaining });
+    }
+
+    return groups;
+  };
+
+  const formatBookedAtIndia = (value: string | null | undefined) => {
+    if (!value) return "N/A";
+
+    const raw = String(value).trim();
+
+    // Handle timestamps that may arrive without timezone info (treat as UTC).
+    const noTimezonePattern = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d+)?$/;
+    const normalized = noTimezonePattern.test(raw)
+      ? `${raw.replace(" ", "T")}Z`
+      : raw;
+
+    const date = new Date(normalized);
+    if (Number.isNaN(date.getTime())) return raw;
+
+    const datePart = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }).format(date).replace(/\//g, "-");
+
+    return `${datePart} IST`;
+  };
+
   const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 10);
@@ -383,131 +409,318 @@ export default function BookingDetailsModal({
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
+    const margin = 12;
+    const cardPadding = 4;
     const contentWidth = pageWidth - margin * 2;
-    const labelWidth = 44;
-    const valueWidth = contentWidth - labelWidth - 2;
-    let y = 16;
+    const headerHeight = 24;
+    const footerHeight = 9;
+    let y = headerHeight + 5;
 
-    const ensureSpace = (requiredHeight: number) => {
-      if (y + requiredHeight > pageHeight - margin) {
-        doc.addPage();
-        y = 16;
-      }
+    const money = (value: unknown) => {
+      const amount = Number(value || 0);
+      return `Rs. ${Number.isFinite(amount) ? amount.toFixed(2) : "0.00"}`;
     };
 
-    const addPageHeader = () => {
+    const fitLines = (text: string, width: number, maxLines: number) => {
+      const wrapped = doc.splitTextToSize(text, width);
+      const lines = Array.isArray(wrapped) ? wrapped : [String(wrapped)];
+      if (lines.length <= maxLines) return lines;
+      const trimmed = lines.slice(0, maxLines);
+      trimmed[maxLines - 1] = `${trimmed[maxLines - 1]}...`;
+      return trimmed;
+    };
+
+    const addHeader = (title: string, subtitle: string) => {
+      doc.setFillColor(16, 19, 26);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+
+      doc.setFillColor(212, 175, 55);
+      doc.rect(0, headerHeight - 1.8, pageWidth, 1.8, "F");
+
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(17);
-      doc.text("Booking Details", margin, y);
-      y += 6;
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14.5);
+      doc.text("MOX VOX", margin, 9.6);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(90, 90, 90);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
-      doc.setTextColor(0, 0, 0);
-      y += 4;
-
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 6;
-    };
-
-    const addSection = (title: string, rows: Array<[string, unknown]>) => {
-      const rowHeights = rows.map(([_, value]) => {
-        const wrapped = doc.splitTextToSize(formatValue(value), valueWidth);
-        const lineCount = Array.isArray(wrapped) ? wrapped.length : 1;
-        return Math.max(6, lineCount * 5 + 1);
-      });
-      const sectionHeight = 8 + rowHeights.reduce((sum, h) => sum + h, 0) + 3;
-
-      ensureSpace(sectionHeight);
-
-      doc.setFillColor(245, 247, 250);
-      doc.rect(margin, y, contentWidth, sectionHeight, "F");
+      doc.setTextColor(212, 218, 231);
+      doc.setFontSize(8.1);
+      doc.text(subtitle, margin, 14.3);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(title, margin + 3, y + 5.5);
+      doc.setTextColor(252, 235, 171);
+      doc.setFontSize(10.2);
+      doc.text(title, pageWidth - margin, 10.3, { align: "right" });
 
-      let rowY = y + 9;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(219, 224, 235);
+      doc.setFontSize(7.3);
+      doc.text(`Generated ${formatBookedAtIndia(new Date().toISOString())}`, pageWidth - margin, 14.7, { align: "right" });
+
+      y = headerHeight + 4.5;
+    };
+
+    const drawFooter = () => {
+      const footerY = pageHeight - footerHeight;
+      doc.setFillColor(241, 242, 246);
+      doc.rect(0, footerY, pageWidth, footerHeight, "F");
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(90, 95, 107);
+      doc.setFontSize(7.1);
+      doc.text("Confidential business document • MOX VOX Event Management", margin, footerY + 5.5);
+      doc.text("Page 1 of 1", pageWidth - margin, footerY + 5.5, { align: "right" });
+    };
+
+    const addSectionTitle = (title: string) => {
+      doc.setFillColor(250, 247, 236);
+      doc.roundedRect(margin, y, contentWidth, 6.8, 1.5, 1.5, "F");
+      doc.setFillColor(212, 175, 55);
+      doc.roundedRect(margin, y, 2.1, 6.8, 1.2, 1.2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(32, 36, 47);
+      doc.setFontSize(8.2);
+      doc.text(title.toUpperCase(), margin + 4, y + 4.5);
+      y += 8.2;
+    };
+
+    const addKeyValueSection = (title: string, rows: Array<[string, unknown]>, sectionHeight: number) => {
+      addSectionTitle(title);
+      const cardHeight = sectionHeight;
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(223, 227, 235);
+      doc.roundedRect(margin, y, contentWidth, cardHeight, 2, 2, "FD");
+
+      const rowCount = rows.length;
+      const rowHeight = (cardHeight - 6) / rowCount;
+      let rowY = y + 4.5;
+      const labelWidth = 36;
+      const valueWidth = contentWidth - 8 - labelWidth;
       rows.forEach(([label, value], index) => {
-        const formattedValue = formatValue(value);
-        const wrappedValue = doc.splitTextToSize(formattedValue, valueWidth);
-        const rowHeight = rowHeights[index];
+        const wrappedValue = fitLines(formatValue(value), valueWidth, 1);
 
         if (index > 0) {
-          doc.setDrawColor(225, 225, 225);
-          doc.line(margin + 2, rowY, pageWidth - margin - 2, rowY);
+          doc.setDrawColor(239, 241, 245);
+          doc.line(margin + 2.3, rowY - 2.1, pageWidth - margin - 2.3, rowY - 2.1);
         }
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10.5);
-        doc.text(label, margin + 3, rowY + 4.5);
+        doc.setTextColor(107, 113, 127);
+        doc.setFontSize(7.2);
+        doc.text(label.toUpperCase(), margin + cardPadding, rowY);
 
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10.5);
-        doc.text(wrappedValue, margin + labelWidth, rowY + 4.5);
+        doc.setTextColor(33, 37, 45);
+        doc.setFontSize(8.2);
+        doc.text(wrappedValue, margin + cardPadding + labelWidth, rowY);
 
         rowY += rowHeight;
       });
 
-      y += sectionHeight + 4;
+      y += cardHeight + 2.5;
+    };
+
+    const addMenuSection = (items: string, sectionHeight: number) => {
+      addSectionTitle("Menu Selection");
+      const normalizedItems = items.split(",").map((item) => item.trim()).filter(Boolean);
+      const groupedItems = getCategorizedMenuGroups(normalizedItems);
+      const cardHeight = sectionHeight;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(223, 227, 235);
+      doc.roundedRect(margin, y, contentWidth, cardHeight, 2, 2, "FD");
+
+      const innerTop = y + 4;
+      const innerBottom = y + cardHeight - 3;
+      const colGap = 6;
+      const innerWidth = contentWidth - 8;
+      const colWidth = (innerWidth - colGap) / 2;
+      const leftX = margin + 4;
+      const rightX = leftX + colWidth + colGap;
+      const headingLineHeight = 3.5;
+      const itemLineHeight = 3.15;
+      const blockGap = 1.25;
+
+      const blocks = groupedItems.map((group) => {
+        const heading = fitLines(group.heading, colWidth, 1)[0];
+        const itemsInBlock = group.items.map((item) => fitLines(`• ${item}`, colWidth, 1)[0]);
+        const blockHeight = headingLineHeight + itemsInBlock.length * itemLineHeight + blockGap;
+        return { heading, items: itemsInBlock, blockHeight };
+      });
+
+      if (blocks.length === 0) {
+        blocks.push({ heading: "Other Selection", items: ["• N/A"], blockHeight: headingLineHeight + itemLineHeight + blockGap });
+      }
+
+      const leftBlocks: typeof blocks = [];
+      const rightBlocks: typeof blocks = [];
+      let leftHeight = 0;
+      let rightHeight = 0;
+      let hiddenGroups = 0;
+
+      blocks.forEach((block) => {
+        const leftFits = leftHeight + block.blockHeight <= innerBottom - innerTop;
+        const rightFits = rightHeight + block.blockHeight <= innerBottom - innerTop;
+
+        if (!leftFits && !rightFits) {
+          hiddenGroups += 1;
+          return;
+        }
+
+        if (leftFits && (!rightFits || leftHeight <= rightHeight)) {
+          leftBlocks.push(block);
+          leftHeight += block.blockHeight;
+        } else {
+          rightBlocks.push(block);
+          rightHeight += block.blockHeight;
+        }
+      });
+
+      const renderColumn = (colBlocks: typeof blocks, startX: number) => {
+        let cursorY = innerTop;
+        colBlocks.forEach((block) => {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(95, 80, 25);
+          doc.setFontSize(7.8);
+          doc.text(block.heading.toUpperCase(), startX, cursorY);
+          cursorY += headingLineHeight;
+
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(33, 37, 45);
+          doc.setFontSize(7.65);
+          block.items.forEach((itemLine) => {
+            doc.text(itemLine, startX, cursorY);
+            cursorY += itemLineHeight;
+          });
+
+          cursorY += blockGap;
+        });
+
+        return cursorY;
+      };
+
+      const leftEndY = renderColumn(leftBlocks, leftX);
+      const rightEndY = renderColumn(rightBlocks, rightX);
+      const markerY = Math.max(leftEndY, rightEndY);
+
+      if (hiddenGroups > 0 && markerY <= innerBottom) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(107, 113, 127);
+        doc.setFontSize(7.2);
+        doc.text(`+ ${hiddenGroups} more category groups`, leftX, Math.min(innerBottom, markerY));
+      }
+
+      y += cardHeight + 2.5;
+    };
+
+    const addBillingSection = () => {
+      addSectionTitle("Billing Details");
+
+      const cardHeight = 56;
+      const cardTop = y;
+      const cardBottom = y + cardHeight;
+      const centerX = margin + contentWidth / 2;
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(223, 227, 235);
+      doc.roundedRect(margin, cardTop, contentWidth, cardHeight, 2, 2, "FD");
+
+      doc.setDrawColor(238, 240, 244);
+      doc.line(centerX, cardTop + 3, centerX, cardBottom - 12);
+
+      const leftRows: Array<[string, string]> = [
+        ["Person Per Price", money(displayData.billing_pax)],
+        ["Guests", String(displayData.guests)],
+        ["Base Amount", money(baseAmount)],
+        ["GST", `${displayData.billing_gst}%`],
+        ["Payment Mode", String(displayData.payment_mode || "N/A")],
+        ["Payment Notes", String(displayData.payment_note || "N/A").slice(0, 24)],
+      ];
+
+      const rightRows: Array<[string, string]> = [
+        ["DJ", money(displayData.billing_dj)],
+        ["Decor", money(displayData.billing_decor)],
+        ["G. Amount", money(displayData.billing_g_amount)],
+        ["Advance", money(displayData.billing_advance)],
+      ];
+
+      const drawColumn = (rows: Array<[string, string]>, startX: number, valueX: number) => {
+        let rowY = cardTop + 6;
+        rows.forEach(([label, value], idx) => {
+          if (idx > 0) {
+            doc.setDrawColor(241, 243, 246);
+            doc.line(startX, rowY - 2.2, valueX + 24, rowY - 2.2);
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7.1);
+          doc.setTextColor(103, 109, 121);
+          doc.text(label.toUpperCase(), startX, rowY);
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.4);
+          doc.setTextColor(28, 33, 42);
+          doc.text(value, valueX, rowY);
+
+          rowY += 7;
+        });
+      };
+
+      drawColumn(leftRows, margin + 4, margin + 40);
+      drawColumn(rightRows, centerX + 4, centerX + 33);
+
+      const dueBarY = cardBottom - 10;
+      doc.setFillColor(250, 247, 236);
+      doc.roundedRect(margin + 2, dueBarY, contentWidth - 4, 7.2, 1.4, 1.4, "F");
+      doc.setFillColor(212, 175, 55);
+      doc.roundedRect(margin + 2, dueBarY, 2, 7.2, 1.1, 1.1, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.3);
+      doc.setTextColor(44, 38, 26);
+      doc.text("NET DUE AMOUNT", margin + 6, dueBarY + 4.8);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.2);
+      doc.setTextColor(33, 37, 45);
+      doc.text(money(displayData.billing_due_amount), pageWidth - margin - 4, dueBarY + 5, { align: "right" });
+
+      y += cardHeight + 2.5;
     };
 
     const baseAmount = displayData.billing_pax * displayData.guests + displayData.billing_dj + displayData.billing_decor;
 
-    addPageHeader();
-    addSection("Customer & Party", [
+    addHeader("BOOKING CONFIRMATION", "Customer Event Dossier");
+
+    addKeyValueSection("Customer Information", [
       ["Name", displayData.customer_name],
       ["Phone", displayData.phone],
-      ["Date Of Birth", displayData.date_of_birth],
-      ["Anniversary", displayData.anniversary],
-      ["Booking Date", new Date(displayData.created_at).toLocaleString('en-IN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })],
-      ["Party Date", displayData.party_date],
-      ["Party Time", formatTime(displayData.party_time)],
-      ["Guests", displayData.guests],
-      ["Package", displayData.package_type],
+      ["Booked At", formatBookedAtIndia(displayData.created_at)],
+      ["Party Date", formatDateDDMMYYYY(displayData.party_date)],
+      ["Party Start Time", formatTime(displayData.party_time)],
+      ["Party End Time", formatTime(displayData.party_end_time)],
       ["Venue", displayData.venue_type],
+      ["Package", displayData.package_type],
       ["Occasion", displayData.occasion],
-      ["Food Type", displayData.food_type],
-      ["Spicy Level", displayData.spicy_level],
-    ]);
-
-    addSection("Timing & DJ", [
-      ["Starter Required", displayData.starter_required],
-      ["Starter Time", formatTime(displayData.starter_time)],
-      ["Maincourse Required", displayData.maincourse_required],
-      ["Maincourse Time", formatTime(displayData.maincourse_time)],
-      ["DJ Required", displayData.dj_required],
-      ["Jockey", displayData.jockey_required],
-      ["DJ Time", formatTime(displayData.dj_time)],
-    ]);
-
-    addSection("Menu Selection", [["Selected Items", menuItemsText || "N/A"]]);
-
-    addSection("Billing Summary", [
-      ["PAX Rate", `Rs. ${displayData.billing_pax}`],
       ["Guests", displayData.guests],
-      ["Base Amount", `Rs. ${baseAmount.toFixed(2)}`],
-      ["DJ", `Rs. ${displayData.billing_dj}`],
-      ["Decor", `Rs. ${displayData.billing_decor}`],
-      ["GST (%)", displayData.billing_gst],
-      ["G. Amount", `Rs. ${displayData.billing_g_amount}`],
-      ["Advance", `Rs. ${displayData.billing_advance}`],
-      ["Payment Mode", displayData.payment_mode || "N/A"],
-      ["Net Due", `Rs. ${displayData.billing_due_amount}`],
-    ]);
+      ["Food Type", displayData.food_type],
+      ["Spice Preference", displayData.spicy_level],
+    ], 52);
 
-    addSection("Notes", [["Other Details", displayData.other_details]]);
+    addKeyValueSection("Food Timing & DJ Details", [
+      ["Starter Service", `${displayData.starter_required} • ${formatTime(displayData.starter_time)}`],
+      ["Maincourse Service", `${displayData.maincourse_required} • ${formatTime(displayData.maincourse_time)}`],
+      ["DJ Required", `${formatValue(displayData.dj_required)} • ${isYesValue(displayData.dj_required) ? formatTime(displayData.dj_time) : "N/A"}`],
+      ["Jockey", displayData.jockey_required],
+    ], 24);
+
+    addMenuSection(menuItemsText || "N/A", 67);
+
+    addBillingSection();
+
+    addKeyValueSection("Other Details", [["Other Details", String(displayData.other_details || "N/A").slice(0, 100)]], 11.5);
+
+    drawFooter();
 
     const safeName = formatValue(displayData.customer_name).replace(/[^a-zA-Z0-9_-]/g, "_");
     const safeDate = formatValue(displayData.party_date).replace(/[^0-9-]/g, "");
@@ -518,114 +731,258 @@ export default function BookingDetailsModal({
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
+    const margin = 12;
     const contentWidth = pageWidth - margin * 2;
-    const labelWidth = 44;
-    const valueWidth = contentWidth - labelWidth - 2;
-    let y = 16;
+    const headerHeight = 24;
+    const footerHeight = 10;
+    let y = headerHeight + 7;
+
+    const menuItems = Array.isArray(displayData.menu_items)
+      ? displayData.menu_items.filter(Boolean)
+      : String(displayData.menu_items || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const addHeader = () => {
+      doc.setFillColor(13, 19, 30);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.setFillColor(212, 175, 55);
+      doc.rect(0, headerHeight - 2, pageWidth, 2, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13.5);
+      doc.text("MOX VOX • KITCHEN PRODUCTION SHEET", margin, 10.2);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(208, 216, 229);
+      doc.setFontSize(8.3);
+      doc.text(`Generated ${formatBookedAtIndia(new Date().toISOString())}`, pageWidth - margin, 10.5, { align: "right" });
+
+      y = headerHeight + 6;
+    };
+
+    const drawFooter = () => {
+      const footerY = pageHeight - footerHeight;
+      doc.setFillColor(241, 242, 246);
+      doc.rect(0, footerY, pageWidth, footerHeight, "F");
+      doc.setTextColor(97, 103, 118);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.text("Kitchen copy • Internal operations use", margin, footerY + 6.2);
+      doc.text("All timings in local event standard", pageWidth - margin, footerY + 6.2, { align: "right" });
+    };
+
+    const contentBottomY = pageHeight - footerHeight - 4;
+
+    const startNewPage = () => {
+      drawFooter();
+      doc.addPage();
+      addHeader();
+    };
 
     const ensureSpace = (requiredHeight: number) => {
-      if (y + requiredHeight > pageHeight - margin) {
-        doc.addPage();
-        y = 16;
+      if (y + requiredHeight > contentBottomY) {
+        startNewPage();
       }
     };
 
-    const addPageHeader = () => {
+    const addSectionTitle = (title: string) => {
+      ensureSpace(9);
+      doc.setFillColor(250, 247, 236);
+      doc.roundedRect(margin, y, contentWidth, 7.5, 1.6, 1.6, "F");
+      doc.setFillColor(212, 175, 55);
+      doc.roundedRect(margin, y, 2.1, 7.5, 1.2, 1.2, "F");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(17);
-      doc.text("Kitchen Detail", margin, y);
-      y += 6;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(90, 90, 90);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
-      doc.setTextColor(0, 0, 0);
-      y += 4;
-
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 6;
+      doc.setTextColor(33, 37, 45);
+      doc.setFontSize(8.9);
+      doc.text(title.toUpperCase(), margin + 4, y + 5);
+      y += 9;
     };
 
-    const addSection = (title: string, rows: Array<[string, unknown]>) => {
-      const rowHeights = rows.map(([_, value]) => {
-        const wrapped = doc.splitTextToSize(formatValue(value), valueWidth);
-        const lineCount = Array.isArray(wrapped) ? wrapped.length : 1;
-        return Math.max(6, lineCount * 5 + 1);
-      });
-      const sectionHeight = 8 + rowHeights.reduce((sum, h) => sum + h, 0) + 3;
-
-      ensureSpace(sectionHeight);
-
-      doc.setFillColor(245, 247, 250);
-      doc.rect(margin, y, contentWidth, sectionHeight, "F");
+    const addGridRow = (leftLabel: string, leftValue: unknown, rightLabel: string, rightValue: unknown) => {
+      const leftX = margin + 3;
+      const rightX = margin + contentWidth / 2 + 2;
+      const rowTop = y;
+      const rowHeight = 7.4;
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(title, margin + 3, y + 5.5);
+      doc.setTextColor(107, 113, 127);
+      doc.setFontSize(7.1);
+      doc.text(leftLabel.toUpperCase(), leftX, rowTop + 0.8);
+      doc.text(rightLabel.toUpperCase(), rightX, rowTop + 0.8);
 
-      let rowY = y + 9;
-      rows.forEach(([label, value], index) => {
-        const formattedValue = formatValue(value);
-        const wrappedValue = doc.splitTextToSize(formattedValue, valueWidth);
-        const rowHeight = rowHeights[index];
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 34, 42);
+      doc.setFontSize(8.6);
+      doc.text(formatValue(leftValue), leftX, rowTop + 4.7);
+      doc.text(formatValue(rightValue), rightX, rowTop + 4.7);
 
-        if (index > 0) {
-          doc.setDrawColor(225, 225, 225);
-          doc.line(margin + 2, rowY, pageWidth - margin - 2, rowY);
+      y += rowHeight;
+      doc.setDrawColor(238, 240, 244);
+      doc.line(margin + 2, y - 1.1, pageWidth - margin - 2, y - 1.1);
+    };
+
+    const addMenuChecklist = () => {
+      const groupedItems = getCategorizedMenuGroups(menuItems);
+      const entries: Array<{ text: string; isHeading: boolean }> = [];
+      groupedItems.forEach((group) => {
+        entries.push({ text: group.heading, isHeading: true });
+        group.items.forEach((item) => {
+          entries.push({ text: item, isHeading: false });
+        });
+      });
+
+      if (entries.length === 0) {
+        entries.push({ text: "N/A", isHeading: false });
+      }
+
+      const minCardHeight = 20;
+      const cardTopPadding = 6;
+      const cardBottomPadding = 4;
+      const separatorGap = 1.2;
+      const wrapWidth = contentWidth - 18;
+
+      const getLineStep = (isHeading: boolean) => (isHeading ? 3.9 : 4.1);
+
+      const getWrappedLines = (text: string) => {
+        const wrapped = doc.splitTextToSize(text, wrapWidth);
+        return Array.isArray(wrapped) ? wrapped.map((line) => String(line)) : [String(wrapped)];
+      };
+
+      let entryIndex = 0;
+      let isFirstSegment = true;
+
+      while (entryIndex < entries.length) {
+        addSectionTitle(isFirstSegment ? "Menu Production Checklist" : "Menu Production Checklist (Cont.)");
+
+        let availableHeight = contentBottomY - y;
+        if (availableHeight < minCardHeight) {
+          startNewPage();
+          addSectionTitle("Menu Production Checklist (Cont.)");
+          availableHeight = contentBottomY - y;
         }
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10.5);
-        doc.text(label, margin + 3, rowY + 4.5);
+        const maxContentHeight = Math.max(0, availableHeight - cardTopPadding - cardBottomPadding);
 
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10.5);
-        doc.text(wrappedValue, margin + labelWidth, rowY + 4.5);
+        const segmentEntries: Array<{ isHeading: boolean; lines: string[]; lineStep: number }> = [];
+        let contentHeightUsed = 0;
 
-        rowY += rowHeight;
-      });
+        while (entryIndex < entries.length) {
+          const entry = entries[entryIndex];
+          const lines = getWrappedLines(entry.text);
+          const lineStep = getLineStep(entry.isHeading);
+          const entryHeight = lines.length * lineStep;
+          const separatorHeight = segmentEntries.length > 0 ? separatorGap : 0;
+          const projectedHeight = contentHeightUsed + separatorHeight + entryHeight;
 
-      y += sectionHeight + 4;
+          if (projectedHeight > maxContentHeight && segmentEntries.length > 0) {
+            break;
+          }
+
+          // Always render at least one entry to avoid infinite loops on constrained space.
+          segmentEntries.push({ isHeading: entry.isHeading, lines, lineStep });
+          contentHeightUsed = projectedHeight;
+          entryIndex += 1;
+
+          if (projectedHeight > maxContentHeight) {
+            break;
+          }
+        }
+
+        const contentHeight = Math.max(10, contentHeightUsed);
+        const cardHeight = Math.max(
+          minCardHeight,
+          Math.min(availableHeight, cardTopPadding + contentHeight + cardBottomPadding)
+        );
+        const cardTop = y;
+        const cardBottom = cardTop + cardHeight;
+
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(223, 227, 235);
+        doc.roundedRect(margin, cardTop, contentWidth, cardHeight, 2, 2, "FD");
+
+        let cursorY = cardTop + cardTopPadding;
+
+        segmentEntries.forEach((lineData, lineDataIndex) => {
+          if (lineDataIndex > 0) {
+            doc.setDrawColor(239, 241, 245);
+            doc.line(margin + 2, cursorY - 1.4, pageWidth - margin - 2, cursorY - 1.4);
+            cursorY += separatorGap;
+          }
+
+          if (lineData.isHeading) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(95, 80, 25);
+            doc.setFontSize(8.2);
+            doc.text(lineData.lines[0].toUpperCase(), margin + 3, cursorY);
+          } else {
+            doc.setDrawColor(130, 136, 149);
+            doc.rect(margin + 3, cursorY - 2.8, 3.2, 3.2);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(33, 37, 45);
+            doc.setFontSize(8.8);
+            doc.text(lineData.lines[0], margin + 8, cursorY);
+          }
+
+          cursorY += lineData.lineStep;
+
+          for (let i = 1; i < lineData.lines.length; i += 1) {
+            doc.text(lineData.lines[i], lineData.isHeading ? margin + 3 : margin + 8, cursorY);
+            cursorY += lineData.lineStep;
+          }
+        });
+
+        y = cardBottom + 4;
+        isFirstSegment = false;
+
+        if (entryIndex < entries.length) {
+          // Continue remaining menu items on the next page.
+          startNewPage();
+        }
+      }
     };
 
-    addPageHeader();
-    addSection("Booking Details", [
-      ["Customer Name", displayData.customer_name],
-      ["Party Date", displayData.party_date],
-      ["Party Time", formatTime(displayData.party_time)],
-      ["Party End Time", formatTime(displayData.party_end_time)],
-      ["Party End Time", formatTime(displayData.party_end_time)],
-      ["Member (Guests)", displayData.guests],
-      ["Venue Type", displayData.venue_type],
-    ]);
+    addHeader();
 
-    addSection("Kitchen Preparation", [
-      ["Food Type", displayData.food_type],
-      ["Spicy Level", displayData.spicy_level],
-      ["Starter Required", displayData.starter_required],
-      ["Starter Time", formatTime(displayData.starter_time)],
-      ["Maincourse Required", displayData.maincourse_required],
-      ["Maincourse Time", formatTime(displayData.maincourse_time)],
-    ]);
+    addSectionTitle("Party Details");
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(223, 227, 235);
+    doc.roundedRect(margin, y, contentWidth, 36, 2, 2, "FD");
+    y += 6;
+    addGridRow("Name", displayData.customer_name, "Party Date", formatDateDDMMYYYY(displayData.party_date));
+    addGridRow("Party Start Time", formatTime(displayData.party_time), "Party End Time", formatTime(displayData.party_end_time));
+    addGridRow("Venue", displayData.venue_type, "Food Type", displayData.food_type);
+    addGridRow("Spicy Level", displayData.spicy_level, "Occasion", displayData.occasion);
+    y += 1.5;
 
-    addSection("DJ & Service", [
-      ["DJ Required", displayData.dj_required],
-      ["DJ Time", formatTime(displayData.dj_time)],
-    ]);
+    addSectionTitle("Food Timing & DJ Details");
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(223, 227, 235);
+    doc.roundedRect(margin, y, contentWidth, 28, 2, 2, "FD");
+    y += 6;
+    addGridRow("Starter Required", displayData.starter_required, "Starter Time", formatTime(displayData.starter_time));
+    addGridRow("Maincourse Required", displayData.maincourse_required, "Maincourse Time", formatTime(displayData.maincourse_time));
+    addGridRow("DJ Required", formatValue(displayData.dj_required), "DJ Time", isYesValue(displayData.dj_required) ? formatTime(displayData.dj_time) : "N/A");
+    y += 1.5;
 
-    const kitchenMenuText = Array.isArray(displayData.menu_items)
-      ? displayData.menu_items.filter(Boolean).map((item) => `• ${item}`).join("\n")
-      : String(displayData.menu_items || "")
-        .split(",")
-        .map((i) => i.trim())
-        .filter(Boolean)
-        .map((item) => `• ${item}`)
-        .join("\n");
+    addMenuChecklist();
 
-    addSection("Menu Items", [["Selected Menu", kitchenMenuText || "N/A"]]);
+    ensureSpace(31);
+    addSectionTitle("Other Details");
+    const notes = displayData.other_details ? doc.splitTextToSize(displayData.other_details, contentWidth - 8) : ["No additional notes"];
+    const notesLines = (Array.isArray(notes) ? notes : [String(notes)]).slice(0, 4);
+    const notesHeight = 20;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(223, 227, 235);
+    doc.roundedRect(margin, y, contentWidth, notesHeight, 2, 2, "FD");
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(33, 37, 45);
+    doc.setFontSize(8.9);
+    doc.text(notesLines, margin + 4, y + 6);
+
+    drawFooter();
 
     const safeName = formatValue(displayData.customer_name).replace(/[^a-zA-Z0-9_-]/g, "_");
     const safeDate = formatValue(displayData.party_date).replace(/[^0-9-]/g, "");
@@ -695,6 +1052,16 @@ export default function BookingDetailsModal({
 
       if (type === "time") {
         if (field === "dj_time") {
+          const currentDjRequired = isEditing && editData ? editData.dj_required : displayData.dj_required;
+          if (!isYesValue(currentDjRequired)) {
+            return (
+              <div className="col-span-2">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">DJ Time</p>
+                <p className="text-sm font-semibold text-[#efe6cf]">N/A</p>
+              </div>
+            );
+          }
+
           return (
             <div className="flex flex-col gap-1 col-span-2">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">DJ Timing (From - To)</p>
@@ -746,7 +1113,9 @@ export default function BookingDetailsModal({
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">{label}</p>
         <p className="text-sm font-semibold text-[#efe6cf]">
-          {type === "time" ? formatTime(value) : (value === null || value === undefined || value === "" ? "N/A" : String(value))}
+          {type === "time"
+            ? (field === "dj_time" && !isYesValue(displayData.dj_required) ? "N/A" : formatTime(value))
+            : formatValue(value)}
         </p>
       </div>
     );
@@ -754,7 +1123,7 @@ export default function BookingDetailsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#D4AF3730] bg-[#080808] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.65)]">
+      <div className="max-h-[90vh] w-full max-w-2xl md:max-w-4xl overflow-y-auto rounded-2xl border border-[#D4AF3730] bg-[#080808] p-4 md:p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.65)]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-4xl font-semibold text-[#D4AF37]">
             {isEditing ? "Edit Booking" : "Booking Details"}
@@ -772,7 +1141,7 @@ export default function BookingDetailsModal({
           {/* Customer Information */}
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Customer Information</h3>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {renderField("Name", "customer_name")}
               {renderField("Phone", "phone")}
               {renderField("Date Of Birth", "date_of_birth", "date")}
@@ -783,24 +1152,18 @@ export default function BookingDetailsModal({
           {/* Party Details */}
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Party Details</h3>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
-              <div className="col-span-2">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">Booking Date</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
+              <div className="col-span-2 md:col-span-4">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">Booked At (IST)</p>
                 <p className="text-sm font-semibold text-[#f4d986]">
-                  {new Date(displayData.created_at).toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  })}
+                  {formatBookedAtIndia(displayData.created_at)}
                 </p>
               </div>
               {renderField("Party Date", "party_date", "date")}
               {renderField("Party Time", "party_time", "time")}
               {renderField("Party End Time", "party_end_time", "time")}
               {renderField("Guests", "guests", "number")}
+              {renderField("Jain Members", "jain_members", "number")}
               {renderField("Package Type", "package_type", "select", [
                 "Snack Attack",
                 "Social Luxe Experience",
@@ -836,7 +1199,7 @@ export default function BookingDetailsModal({
           {/* Food Timing */}
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Food Timing</h3>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {renderField("Starter Required", "starter_required", "select", ["Yes", "No"])}
               {renderField("Starter Time", "starter_time", "time")}
               {renderField("Maincourse Required", "maincourse_required", "select", ["Yes", "No"])}
@@ -847,7 +1210,7 @@ export default function BookingDetailsModal({
           {/* Menu Selection */}
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Menu Selection</h3>
-            <div className="rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+            <div className="rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {isEditing && editData ? (
                 <textarea
                   value={menuItemsInput}
@@ -867,10 +1230,10 @@ export default function BookingDetailsModal({
           {/* DJ Details */}
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">DJ Details</h3>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {renderField("DJ Required", "dj_required", "select", ["Yes", "No"])}
               {renderField("Jockey", "jockey_required", "select", ["Yes", "No"])}
-              <div className="col-span-2">
+              <div className="col-span-2 md:col-span-4">
                 {renderField("DJ Time", "dj_time", "time")}
               </div>
             </div>
@@ -879,7 +1242,7 @@ export default function BookingDetailsModal({
           {/* Billing Details */}
           <div>
             <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Billing Details</h3>
-            <div className="grid grid-cols-2 gap-2 overflow-hidden rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 overflow-hidden rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
               {renderField("PAX", "billing_pax", "number")}
               {renderField("DJ", "billing_dj", "number")}
               {renderField("Decor", "billing_decor", "number")}
@@ -907,14 +1270,20 @@ export default function BookingDetailsModal({
               {renderField("Advance", "billing_advance", "number")}
               {renderField("Payment Mode", "payment_mode", "select", ["Q5", "Q7", "cash", "card", "upi"])}
               {renderField("Net Due Amount", "billing_due_amount", "number")}
+              <div className="col-span-2 md:col-span-4">
+                {renderField("Payment Notes", "payment_note", "textarea")}
+              </div>
+              <div className="col-span-2 md:col-span-4">
+                {renderField("Total Amount", "billing_total_amount", "number")}
+              </div>
             </div>
           </div>
 
           {/* Other Details */}
-          {(displayData.other_details && displayData.other_details !== "") && (
+          {(isEditing || (displayData.other_details && displayData.other_details !== "")) && (
             <div>
               <h3 className="mb-2 font-display text-3xl text-[#D4AF37]">Other Details</h3>
-              <div className="rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3">
+              <div className="rounded-lg border border-[#D4AF3726] bg-[rgba(255,255,255,0.03)] p-3 md:p-4">
                 {renderField("Other Details", "other_details", "textarea")}
               </div>
             </div>
@@ -1030,7 +1399,7 @@ export default function BookingDetailsModal({
             <div className="mb-3 flex items-start justify-between gap-4">
               <div className="flex-1">
                 <h3 className="font-display text-3xl font-semibold text-[#D4AF37]">Edit Verification</h3>
-                <p className="mt-1 text-sm text-white/70">Admin edit login required for edit/delete</p>
+                <p className="mt-1 text-sm text-white/70">Password verification required for edit/delete</p>
               </div>
               <img
                 src="/mox-vox-logo.svg"
@@ -1040,137 +1409,31 @@ export default function BookingDetailsModal({
             </div>
 
             <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-[#111111] p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setVerificationMode("verify");
-                    setVerifyError("");
-                    setVerifySuccess("");
-                  }}
-                  className={`rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition ${
-                    verificationMode === "verify"
-                      ? "bg-[#D4AF37] text-black"
-                      : "text-white/70 hover:text-white"
-                  }`}
-                >
-                  Verify
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setVerificationMode("change-password");
-                    setVerifyError("");
-                    setVerifySuccess("");
-                  }}
-                  className={`rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition ${
-                    verificationMode === "change-password"
-                      ? "bg-[#D4AF37] text-black"
-                      : "text-white/70 hover:text-white"
-                  }`}
-                >
-                  Change Password
-                </button>
-              </div>
+              <p className="rounded-lg border border-[#D4AF3730] bg-[#111111] px-3 py-2 text-xs text-white/70">
+                Enter the edit/delete password to continue.
+              </p>
 
               <div>
-                <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">Email</p>
-                <input
-                  type="email"
-                  value={verifyEmail}
-                  onChange={(e) => setVerifyEmail(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
-                  autoComplete="off"
-                  placeholder=""
-                />
+                <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">Password</p>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={verifyPassword}
+                    onChange={(e) => setVerifyPassword(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 pr-10 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 transition hover:text-white"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
-              {verificationMode === "verify" ? (
-                <div>
-                  <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">Password</p>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={verifyPassword}
-                      onChange={(e) => setVerifyPassword(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 pr-10 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
-                      autoComplete="off"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 transition hover:text-white"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">Old Password</p>
-                    <div className="relative">
-                      <input
-                        type={showOldPassword ? "text" : "password"}
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                        className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 pr-10 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowOldPassword(!showOldPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 transition hover:text-white"
-                      >
-                        {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">New Password</p>
-                    <div className="relative">
-                      <input
-                        type={showNewPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 pr-10 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 transition hover:text-white"
-                      >
-                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/60">Confirm New Password</p>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        className="w-full rounded-lg border border-white/10 bg-[#111111] px-3 py-2 pr-10 text-sm text-white outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF3730]"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 transition hover:text-white"
-                      >
-                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
               {verifyError ? <p className="text-sm text-red-400">{verifyError}</p> : null}
-              {verifySuccess ? <p className="text-sm text-emerald-400">{verifySuccess}</p> : null}
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
@@ -1183,13 +1446,11 @@ export default function BookingDetailsModal({
               </button>
               <button
                 type="button"
-                onClick={verificationMode === "verify" ? handleVerifyAdmin : handleChangeAdminPassword}
-                disabled={isVerifying || isChangingPassword}
+                onClick={handleVerifyAdmin}
+                disabled={isVerifying}
                 className="rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#f2d57b] px-4 py-2 text-sm font-semibold text-black shadow-[0_8px_20px_rgba(212,175,55,0.35)] transition hover:scale-[1.02] disabled:opacity-70"
               >
-                {verificationMode === "verify"
-                  ? (isVerifying ? "Verifying..." : "Verify")
-                  : (isChangingPassword ? "Changing..." : "Change Password")}
+                {isVerifying ? "Verifying..." : "Verify"}
               </button>
             </div>
           </div>

@@ -34,7 +34,8 @@ const menuData: Record<string, string[]> = {
     "Veg Clear Soup",
   ],
   Starter: [
-    "Veg Manchurian (Dry/Gravy)",
+    "Veg Manchurian Dry",
+    "Veg Manchurian Gravy",
     "Veg Spring Roll",
     "Veg 65",
     "Dragon Potato",
@@ -60,7 +61,8 @@ const menuData: Record<string, string[]> = {
   ],
   "Special Starter": [
     "Chilli Garlic Paneer",
-    "Chilly Paneer",
+    "Chilly Paneer Dry",
+    "Chilly Paneer Gravy",
     "American Chopsy",
     "Paneer 65",
     "Methi Paneer Tikki",
@@ -79,6 +81,19 @@ const menuData: Record<string, string[]> = {
     "Pav Bhaji",
     "Coleslaw Sandwich",
     "Masala Tikka Pav",
+  ],
+  "Paneer Preparation": [
+    "Paneer Butter Masala",
+    "Paneer Tikka Masala",
+    "Paneer Lababdar",
+    "Paneer Handi Lazeez",
+    "Paneer Matar Masala",
+    "Kadai Paneer",
+    "Paneer Jwalamukhi",
+    "Paneer Angara",
+    "Paneer Do Pyaza",
+    "Paneer Khurchan",
+    "Palak Paneer",
   ],
   "Veg Preparation": [
     "Malai Kofta (Veg Gravy)",
@@ -104,21 +119,7 @@ const menuData: Record<string, string[]> = {
     "Punjabi Kofta Curry",
     "Veg Jaipur",
   ],
-  "Paneer Preparation": [
-    "Paneer Butter Masala",
-    "Paneer Tikka Masala",
-    "Paneer Lababdar",
-    "Paneer Handi Lazeez",
-    "Paneer Matar Masala",
-    "Kadai Paneer",
-    "Paneer Jwalamukhi",
-    "Paneer Angara",
-    "Paneer Do Pyaza",
-    "Paneer Khurchan",
-    "Palak Paneer",
-  ],
   "Dal Preparation": ["Dal Fry", "Dal Tadka", "Dal Makhani", "Rajasthani Kadi"],
-  Salad: ["Garden Fresh Salad", "Onion Ring Salad", "Kachumbar Salad", "Corn Pineapple Salad"],
   "Rice Preparation": [
     "Jeera Rice",
     "Jeera Peas Pulao",
@@ -132,19 +133,38 @@ const menuData: Record<string, string[]> = {
   ],
   "Indian Breads": [
     "Butter Tandoori Roti",
+    "Tava Roti",
     "Butter Naan",
     "Green Chilli Naan",
     "Garlic Naan",
     "Butter Laccha Paratha",
     "Missi Roti",
   ],
+  Salad: ["Garden Fresh Salad", "Onion Ring Salad", "Kachumbar Salad", "Corn Pineapple Salad"],
   Chutney: ["Garlic Sauce", "Mint Sauce", "Schezwan Sauce", "Mayo Sauce", "Garlic Chutney"],
   "Ice Cream": ["Vanilla", "Strawberry", "Chocolate", "Butterscotch", "Vanilla with Chocolate Sauce", "Mix Ice Cream"],
   "Kuch Chatpata Sa": ["Sev Dahi Puri", "Aloo Chana Chaat", "Pani Puri", "Dahi Bhalla", "Bhel Puri"],
   "Curd Preparation": ["Mix Veg Raita", "Boondi Raita", "Onion Raita", "Fry Raita", "Pineapple Raita", "Mint Tadka Raita"],
+  Papad: ["Mini Khichiya", "Fried Papad", "Plain Roasted Papad", "Triangle Fryums"],
 };
 
-const menuCategories = Object.keys(menuData);
+const menuCategories = [
+  "Welcome Drinks",
+  "Soups",
+  "Starter",
+  "Special Starter",
+  "Paneer Preparation",
+  "Veg Preparation",
+  "Dal Preparation",
+  "Rice Preparation",
+  "Indian Breads",
+  "Salad",
+  "Chutney",
+  "Ice Cream",
+  "Kuch Chatpata Sa",
+  "Curd Preparation",
+  "Papad",
+].filter((category) => category in menuData);
 
 const initialForm: BookingPayload = {
   customer_name: "",
@@ -159,6 +179,7 @@ const initialForm: BookingPayload = {
   maincourse_required: "No",
   maincourse_time: "",
   guests: 0,
+  jain_members: 0,
   food_type: "Regular Food",
   spicy_level: "Medium Spicy",
   package_type: "Snack Attack",
@@ -168,6 +189,7 @@ const initialForm: BookingPayload = {
   jockey_required: "No",
   dj_time: "",
   other_details: "",
+  payment_note: "",
   menu_items: [],
   billing_pax: 0,
   billing_dj: 0,
@@ -192,6 +214,7 @@ type BookingFormDraft = {
 
 export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = false }: BookingFormProps) {
   const [formData, setFormData] = useState<BookingPayload>(initialForm);
+  const [isJainMembersEnabled, setIsJainMembersEnabled] = useState(false);
   const [isGuestsFocused, setIsGuestsFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -221,6 +244,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
 
       if (parsed.formData) {
         setFormData({ ...initialForm, ...parsed.formData });
+        setIsJainMembersEnabled(Number(parsed.formData.jain_members || 0) > 0);
       }
 
       if (Array.isArray(parsed.selectedItems)) {
@@ -316,6 +340,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
     const { name, value } = event.target;
     const numericFields = new Set([
       "guests",
+      "jain_members",
       "billing_pax",
       "billing_dj",
       "billing_decor",
@@ -345,6 +370,23 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
         ...prev,
         [name]: finalValue,
       };
+
+      if (name === "jain_members") {
+        const requestedJain = Number(value) || 0;
+        updatedData.jain_members = Math.max(0, Math.min(requestedJain, updatedData.guests));
+      }
+
+      if (name === "guests") {
+        const guestCount = Number(value) || 0;
+        if (updatedData.jain_members > guestCount) {
+          updatedData.jain_members = guestCount;
+        }
+      }
+
+      if (name === "food_type" && String(value) === "Jain Food") {
+        updatedData.jain_members = updatedData.guests;
+        setIsJainMembersEnabled(true);
+      }
 
       if (["guests", "billing_pax", "billing_dj", "billing_decor", "billing_gst"].includes(name)) {
         const guests = name === "guests" ? Number(value) : updatedData.guests;
@@ -389,6 +431,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
       starter_time: formData.starter_time || null,
       maincourse_time: formData.maincourse_time || null,
       dj_time: formData.dj_time || null,
+      payment_note: formData.payment_note || null,
     };
 
     const saved = await onSubmitBooking(cleanedData);
@@ -448,7 +491,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
     setFormData((prev) => ({
       ...prev,
       starter_required: checked ? "Yes" : "No",
-      starter_time: checked ? prev.starter_time : "",
+      starter_time: checked ? (prev.starter_time || "14:00") : "",
     }));
   };
 
@@ -456,8 +499,29 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
     setFormData((prev) => ({
       ...prev,
       maincourse_required: checked ? "Yes" : "No",
-      maincourse_time: checked ? prev.maincourse_time : "",
+      maincourse_time: checked ? (prev.maincourse_time || "19:00") : "",
     }));
+  };
+
+  const handleJainMembersToggle = (checked: boolean) => {
+    setIsJainMembersEnabled(checked);
+
+    setFormData((prev) => {
+      if (!checked) {
+        return {
+          ...prev,
+          jain_members: 0,
+        };
+      }
+
+      const minCount = prev.guests > 0 ? 1 : 0;
+      const nextCount = prev.jain_members > 0 ? prev.jain_members : minCount;
+
+      return {
+        ...prev,
+        jain_members: nextCount,
+      };
+    });
   };
 
   const previewSelectedItems = selectedItems.slice(0, 3).join(", ");
@@ -654,6 +718,34 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                         </motion.div>
                       ) : null}
                     </AnimatePresence>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClassName}>Jain Members</label>
+                  <div className="space-y-2 rounded-[10px] border border-white/10 bg-[#0f0f0f] p-3">
+                    <label className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4d986]">
+                      <input
+                        type="checkbox"
+                          checked={isJainMembersEnabled}
+                        onChange={(event) => handleJainMembersToggle(event.target.checked)}
+                        className="h-4 w-4 accent-[#D4AF37]"
+                      />
+                      Include Jain Members
+                    </label>
+
+                    <input
+                      id="jain_members"
+                      name="jain_members"
+                      type="number"
+                      min={0}
+                      max={formData.guests}
+                      placeholder={formData.jain_members > 0 ? "1" : "0"}
+                      value={formData.jain_members === 0 ? "" : formData.jain_members}
+                      onChange={handleChange}
+                      disabled={!isJainMembersEnabled}
+                      className={`${inputClassName} ${!isJainMembersEnabled ? "opacity-45" : ""}`}
+                    />
                   </div>
                 </div>
 
@@ -885,10 +977,11 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                     value={formData.other_details}
                     onChange={handleChange}
                     rows={3}
-                    placeholder="Write any extra details here"
+                    placeholder="Write any extra event details here"
                     className={inputClassName}
                   />
                 </div>
+
               </div>
             </motion.div>
           ) : null}
@@ -1282,6 +1375,21 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                       className="w-full cursor-not-allowed rounded-[10px] border border-[#D4AF3755] bg-[#111111] px-3 py-2.5 text-[#f5dfa0] outline-none"
                     />
                   </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label htmlFor="payment_note" className={labelClassName}>
+                    Payment Notes
+                  </label>
+                  <textarea
+                    id="payment_note"
+                    name="payment_note"
+                    value={formData.payment_note ?? ""}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Write payment-related notes"
+                    className={inputClassName}
+                  />
                 </div>
               </div>
             </motion.div>

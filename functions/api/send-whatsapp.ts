@@ -18,15 +18,91 @@ function formatIndianPhone(phone: string): string {
   return `91${digits}`;
 }
 
+function formatDateToDdmmyyyy(dateValue: string): string {
+  const trimmed = String(dateValue || "").trim();
+
+  if (!trimmed || trimmed === "N/A") {
+    return "N/A";
+  }
+
+  const parts = trimmed.split("-");
+  if (parts.length !== 3) {
+    return trimmed;
+  }
+
+  const [year, month, day] = parts;
+  if (!year || !month || !day) {
+    return trimmed;
+  }
+
+  return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
+}
+
+function formatTimeTo12Hour(timeValue: string): string {
+  const trimmed = String(timeValue || "").trim();
+
+  if (!trimmed || trimmed === "N/A") {
+    return "N/A";
+  }
+
+  const upper = trimmed.toUpperCase();
+  if (upper.includes("AM") || upper.includes("PM")) {
+    return trimmed;
+  }
+
+  const parts = trimmed.split(":");
+  if (parts.length < 2) {
+    return trimmed;
+  }
+
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return trimmed;
+  }
+
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+  const displayMinutes = String(minutes).padStart(2, "0");
+
+  return `${displayHours}:${displayMinutes} ${period}`;
+}
+
+function formatTimeRangeTo12Hour(startTime: string, endTime: string): string {
+  const formattedStart = formatTimeTo12Hour(startTime);
+  const formattedEnd = formatTimeTo12Hour(endTime);
+
+  const hasStart = formattedStart !== "N/A";
+  const hasEnd = formattedEnd !== "N/A";
+
+  if (hasStart && hasEnd) {
+    return `${formattedStart} - ${formattedEnd}`;
+  }
+
+  if (hasStart) {
+    return formattedStart;
+  }
+
+  if (hasEnd) {
+    return formattedEnd;
+  }
+
+  return "N/A";
+}
+
 export const onRequestPost = async (context: RequestContext): Promise<Response> => {
   const payload = await readJson(context.request);
   const phone = String(payload.phone || "").trim();
   const name = String(payload.name || "Guest");
-  const date = String(payload.date || "N/A");
-  const partyTime = String(payload.party_time || "N/A");
-  const starterTime = String(payload.starter_time || "N/A");
-  const mainCourseTime = String(payload.main_course_time || "N/A");
-  const djTime = String(payload.dj_time || "N/A");
+  const date = formatDateToDdmmyyyy(String(payload.date || "N/A"));
+  const partyTime = formatTimeRangeTo12Hour(
+    String(payload.party_time || "N/A"),
+    String(payload.party_end_time || "N/A")
+  );
+  const starterTime = formatTimeTo12Hour(String(payload.starter_time || "N/A"));
+  const mainCourseTime = formatTimeTo12Hour(String(payload.main_course_time || "N/A"));
+  const djTime = formatTimeTo12Hour(String(payload.dj_time || "N/A"));
 
   if (!phone) {
     return json(400, { success: false, error: "phone is required" });

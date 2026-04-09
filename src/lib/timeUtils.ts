@@ -98,3 +98,65 @@ export function convert12To24(time12: string): string {
 
   return convertTo24Hour(hour, minute, period);
 }
+
+const ISO_DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function toDateParts(value: string | number | Date) {
+  if (typeof value === "string") {
+    const match = value.trim().match(ISO_DATE_ONLY_REGEX);
+    if (match) {
+      const [, year, month, day] = match;
+      return { day, month, year };
+    }
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const year = String(parsedDate.getFullYear());
+
+  return { day, month, year };
+}
+
+export function formatDateDDMMYYYY(
+  value: string | number | Date | null | undefined,
+  fallback = "N/A"
+): string {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  const parts = toDateParts(value);
+  if (!parts) {
+    return typeof value === "string" ? value : fallback;
+  }
+
+  return `${parts.day}-${parts.month}-${parts.year}`;
+}
+
+export function formatDateTimeDDMMYYYY(
+  value: string | number | Date | null | undefined,
+  fallback = "N/A"
+): string {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return typeof value === "string" ? value : fallback;
+  }
+
+  const datePart = formatDateDDMMYYYY(date, fallback);
+  const timePart = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+
+  return `${datePart}, ${timePart}`;
+}

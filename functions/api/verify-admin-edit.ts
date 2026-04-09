@@ -1,4 +1,6 @@
-import { checkRateLimit, getClientIp, getCredentials, json, readJson, readString, type RequestContext } from "./_shared";
+import { checkRateLimit, getClientIp, json, readJson, readString, type RequestContext } from "./_shared";
+
+const EDIT_ACTION_PASSWORD = "moxvox@2026";
 
 export const onRequestPost = async (context: RequestContext): Promise<Response> => {
   const ip = getClientIp(context.request);
@@ -17,11 +19,8 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
   }
 
   const payload = await readJson(context.request);
-  const email = readString(payload.email);
   const password = readString(payload.password);
-
-  const expected = await getCredentials(context.env, true);
-  const success = !!expected.email && !!expected.password && email === expected.email && password === expected.password;
+  const success = password === EDIT_ACTION_PASSWORD;
 
   return json(success ? 200 : 401, { success });
 };

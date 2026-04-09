@@ -14,6 +14,7 @@ export type Booking = {
   maincourse_required: string;
   maincourse_time: string | null;
   guests: number;
+  jain_members: number;
   food_type: string;
   spicy_level: string;
   package_type: string;
@@ -23,6 +24,7 @@ export type Booking = {
   jockey_required: string;
   dj_time: string | null;
   other_details: string;
+  payment_note: string | null;
   menu_items: string[];
   billing_pax: number;
   billing_dj: number;
