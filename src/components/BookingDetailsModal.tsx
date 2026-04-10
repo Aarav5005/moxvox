@@ -939,23 +939,170 @@ export default function BookingDetailsModal({
         entries.push({ text: "N/A", isHeading: false });
       }
 
+      const shouldUseTwoColumns = entries.length > 14;
+
+      if (!shouldUseTwoColumns) {
+        const minCardHeight = 20;
+        const cardTopPadding = 6;
+        const cardBottomPadding = 4;
+        const separatorGap = 1.2;
+        const wrapWidth = contentWidth - 18;
+
+        const getLineStep = (isHeading: boolean) => (isHeading ? 3.9 : 4.1);
+
+        const getWrappedLines = (text: string) => {
+          const wrapped = doc.splitTextToSize(text, wrapWidth);
+          return Array.isArray(wrapped) ? wrapped.map((line) => String(line)) : [String(wrapped)];
+        };
+
+        let entryIndex = 0;
+        let isFirstSegment = true;
+
+        while (entryIndex < entries.length) {
+          addSectionTitle(isFirstSegment ? "Menu Production Checklist" : "Menu Production Checklist (Cont.)");
+
+          let availableHeight = contentBottomY - y;
+          if (availableHeight < minCardHeight) {
+            startNewPage();
+            addSectionTitle("Menu Production Checklist (Cont.)");
+            availableHeight = contentBottomY - y;
+          }
+
+          const maxContentHeight = Math.max(0, availableHeight - cardTopPadding - cardBottomPadding);
+
+          const segmentEntries: Array<{ isHeading: boolean; lines: string[]; lineStep: number }> = [];
+          let contentHeightUsed = 0;
+
+          while (entryIndex < entries.length) {
+            const entry = entries[entryIndex];
+            const lines = getWrappedLines(entry.text);
+            const lineStep = getLineStep(entry.isHeading);
+            const entryHeight = lines.length * lineStep;
+            const separatorHeight = segmentEntries.length > 0 ? separatorGap : 0;
+            const projectedHeight = contentHeightUsed + separatorHeight + entryHeight;
+
+            if (projectedHeight > maxContentHeight && segmentEntries.length > 0) {
+              break;
+            }
+
+            segmentEntries.push({ isHeading: entry.isHeading, lines, lineStep });
+            contentHeightUsed = projectedHeight;
+            entryIndex += 1;
+
+            if (projectedHeight > maxContentHeight) {
+              break;
+            }
+          }
+
+          const contentHeight = Math.max(10, contentHeightUsed);
+          const cardHeight = Math.max(
+            minCardHeight,
+            Math.min(availableHeight, cardTopPadding + contentHeight + cardBottomPadding)
+          );
+          const cardTop = y;
+          const cardBottom = cardTop + cardHeight;
+
+          doc.setFillColor(255, 255, 255);
+          doc.setDrawColor(223, 227, 235);
+          doc.roundedRect(margin, cardTop, contentWidth, cardHeight, 2, 2, "FD");
+
+          let cursorY = cardTop + cardTopPadding;
+
+          segmentEntries.forEach((lineData, lineDataIndex) => {
+            if (lineDataIndex > 0) {
+              doc.setDrawColor(239, 241, 245);
+              doc.line(margin + 2, cursorY - 1.4, pageWidth - margin - 2, cursorY - 1.4);
+              cursorY += separatorGap;
+            }
+
+            if (lineData.isHeading) {
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(95, 80, 25);
+              doc.setFontSize(8.2);
+              doc.text(lineData.lines[0].toUpperCase(), margin + 3, cursorY);
+            } else {
+              doc.setDrawColor(130, 136, 149);
+              doc.rect(margin + 3, cursorY - 2.8, 3.2, 3.2);
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(33, 37, 45);
+              doc.setFontSize(8.8);
+              doc.text(lineData.lines[0], margin + 8, cursorY);
+            }
+
+            cursorY += lineData.lineStep;
+
+            for (let i = 1; i < lineData.lines.length; i += 1) {
+              doc.text(lineData.lines[i], lineData.isHeading ? margin + 3 : margin + 8, cursorY);
+              cursorY += lineData.lineStep;
+            }
+          });
+
+          y = cardBottom + 4;
+          isFirstSegment = false;
+
+          if (entryIndex < entries.length) {
+            startNewPage();
+          }
+        }
+
+        return;
+      }
+
       const minCardHeight = 20;
       const cardTopPadding = 6;
       const cardBottomPadding = 4;
-      const separatorGap = 1.2;
-      const wrapWidth = contentWidth - 18;
+      const columnGap = 6;
+      const blockGap = 1.4;
+      const headingLineHeight = 3.7;
+      const itemLineHeight = 3.9;
+      const chunkSize = 8;
 
-      const getLineStep = (isHeading: boolean) => (isHeading ? 3.9 : 4.1);
+      const innerWidth = contentWidth - 8;
+      const colWidth = (innerWidth - columnGap) / 2;
 
-      const getWrappedLines = (text: string) => {
-        const wrapped = doc.splitTextToSize(text, wrapWidth);
-        return Array.isArray(wrapped) ? wrapped.map((line) => String(line)) : [String(wrapped)];
+      const toLines = (text: string, maxWidth: number, maxLines = 2) => {
+        const wrapped = doc.splitTextToSize(text, maxWidth);
+        const lines = Array.isArray(wrapped) ? wrapped.map((line) => String(line)) : [String(wrapped)];
+        if (lines.length <= maxLines) return lines;
+        const clipped = lines.slice(0, maxLines);
+        clipped[maxLines - 1] = `${clipped[maxLines - 1].replace(/[\s.,;:!?-]+$/, "")}...`;
+        return clipped;
       };
 
-      let entryIndex = 0;
+      const fitSingleLine = (text: string, maxWidth: number) => {
+        const lines = toLines(text, maxWidth, 1);
+        return lines[0] || "";
+      };
+
+      type MenuBlock = { headingLines: string[]; items: string[]; blockHeight: number };
+      const blocks: MenuBlock[] = [];
+
+      groupedItems.forEach((group) => {
+        const rawItems = group.items.length > 0 ? group.items : ["N/A"];
+        for (let index = 0; index < rawItems.length; index += chunkSize) {
+          const chunk = rawItems.slice(index, index + chunkSize);
+          const headingText = index === 0 ? group.heading : `${group.heading} (Cont.)`;
+          const headingLines = toLines(headingText.toUpperCase(), colWidth - 2, 2);
+          const items = chunk.map((item) => fitSingleLine(item, colWidth - 10));
+          const blockHeight = headingLines.length * headingLineHeight + items.length * itemLineHeight + 1;
+          blocks.push({ headingLines, items, blockHeight });
+        }
+      });
+
+      if (blocks.length === 0) {
+        const headingLines = ["OTHER SELECTION"];
+        const items = ["N/A"];
+        blocks.push({
+          headingLines,
+          items,
+          blockHeight: headingLines.length * headingLineHeight + items.length * itemLineHeight + 1,
+        });
+      }
+
+      let blockIndex = 0;
       let isFirstSegment = true;
 
-      while (entryIndex < entries.length) {
+      while (blockIndex < blocks.length) {
         addSectionTitle(isFirstSegment ? "Menu Production Checklist" : "Menu Production Checklist (Cont.)");
 
         let availableHeight = contentBottomY - y;
@@ -965,34 +1112,44 @@ export default function BookingDetailsModal({
           availableHeight = contentBottomY - y;
         }
 
-        const maxContentHeight = Math.max(0, availableHeight - cardTopPadding - cardBottomPadding);
+        const maxColumnHeight = Math.max(8, availableHeight - cardTopPadding - cardBottomPadding);
 
-        const segmentEntries: Array<{ isHeading: boolean; lines: string[]; lineStep: number }> = [];
-        let contentHeightUsed = 0;
+        const leftBlocks: MenuBlock[] = [];
+        const rightBlocks: MenuBlock[] = [];
+        let leftHeight = 0;
+        let rightHeight = 0;
 
-        while (entryIndex < entries.length) {
-          const entry = entries[entryIndex];
-          const lines = getWrappedLines(entry.text);
-          const lineStep = getLineStep(entry.isHeading);
-          const entryHeight = lines.length * lineStep;
-          const separatorHeight = segmentEntries.length > 0 ? separatorGap : 0;
-          const projectedHeight = contentHeightUsed + separatorHeight + entryHeight;
+        while (blockIndex < blocks.length) {
+          const block = blocks[blockIndex];
+          const leftProjected = leftHeight + (leftBlocks.length > 0 ? blockGap : 0) + block.blockHeight;
+          const rightProjected = rightHeight + (rightBlocks.length > 0 ? blockGap : 0) + block.blockHeight;
 
-          if (projectedHeight > maxContentHeight && segmentEntries.length > 0) {
-            break;
+          let placed = false;
+          if (leftHeight <= rightHeight && leftProjected <= maxColumnHeight) {
+            leftBlocks.push(block);
+            leftHeight = leftProjected;
+            placed = true;
+          } else if (rightProjected <= maxColumnHeight) {
+            rightBlocks.push(block);
+            rightHeight = rightProjected;
+            placed = true;
+          } else if (leftProjected <= maxColumnHeight) {
+            leftBlocks.push(block);
+            leftHeight = leftProjected;
+            placed = true;
           }
 
-          // Always render at least one entry to avoid infinite loops on constrained space.
-          segmentEntries.push({ isHeading: entry.isHeading, lines, lineStep });
-          contentHeightUsed = projectedHeight;
-          entryIndex += 1;
-
-          if (projectedHeight > maxContentHeight) {
-            break;
-          }
+          if (!placed) break;
+          blockIndex += 1;
         }
 
-        const contentHeight = Math.max(10, contentHeightUsed);
+        if (leftBlocks.length === 0 && rightBlocks.length === 0) {
+          leftBlocks.push(blocks[blockIndex]);
+          leftHeight = blocks[blockIndex].blockHeight;
+          blockIndex += 1;
+        }
+
+        const contentHeight = Math.max(leftHeight, rightHeight, 10);
         const cardHeight = Math.max(
           minCardHeight,
           Math.min(availableHeight, cardTopPadding + contentHeight + cardBottomPadding)
@@ -1004,42 +1161,45 @@ export default function BookingDetailsModal({
         doc.setDrawColor(223, 227, 235);
         doc.roundedRect(margin, cardTop, contentWidth, cardHeight, 2, 2, "FD");
 
-        let cursorY = cardTop + cardTopPadding;
+        const innerLeftX = margin + 4;
+        const rightColumnX = innerLeftX + colWidth + columnGap;
 
-        segmentEntries.forEach((lineData, lineDataIndex) => {
-          if (lineDataIndex > 0) {
-            doc.setDrawColor(239, 241, 245);
-            doc.line(margin + 2, cursorY - 1.4, pageWidth - margin - 2, cursorY - 1.4);
-            cursorY += separatorGap;
-          }
+        const renderColumn = (columnBlocks: MenuBlock[], startX: number) => {
+          let cursorY = cardTop + cardTopPadding;
+          columnBlocks.forEach((block, blockIdx) => {
+            if (blockIdx > 0) {
+              doc.setDrawColor(239, 241, 245);
+              doc.line(startX - 1, cursorY - 1.1, startX + colWidth - 1, cursorY - 1.1);
+              cursorY += blockGap;
+            }
 
-          if (lineData.isHeading) {
             doc.setFont("helvetica", "bold");
             doc.setTextColor(95, 80, 25);
-            doc.setFontSize(8.2);
-            doc.text(lineData.lines[0].toUpperCase(), margin + 3, cursorY);
-          } else {
-            doc.setDrawColor(130, 136, 149);
-            doc.rect(margin + 3, cursorY - 2.8, 3.2, 3.2);
+            doc.setFontSize(8);
+            block.headingLines.forEach((line) => {
+              doc.text(line, startX, cursorY);
+              cursorY += headingLineHeight;
+            });
+
             doc.setFont("helvetica", "normal");
             doc.setTextColor(33, 37, 45);
-            doc.setFontSize(8.8);
-            doc.text(lineData.lines[0], margin + 8, cursorY);
-          }
+            doc.setFontSize(8.6);
+            block.items.forEach((item) => {
+              doc.setDrawColor(130, 136, 149);
+              doc.rect(startX, cursorY - 2.8, 3.2, 3.2);
+              doc.text(item, startX + 5, cursorY);
+              cursorY += itemLineHeight;
+            });
+          });
+        };
 
-          cursorY += lineData.lineStep;
-
-          for (let i = 1; i < lineData.lines.length; i += 1) {
-            doc.text(lineData.lines[i], lineData.isHeading ? margin + 3 : margin + 8, cursorY);
-            cursorY += lineData.lineStep;
-          }
-        });
+        renderColumn(leftBlocks, innerLeftX);
+        renderColumn(rightBlocks, rightColumnX);
 
         y = cardBottom + 4;
         isFirstSegment = false;
 
-        if (entryIndex < entries.length) {
-          // Continue remaining menu items on the next page.
+        if (blockIndex < blocks.length) {
           startNewPage();
         }
       }
@@ -1048,14 +1208,21 @@ export default function BookingDetailsModal({
     addHeader();
 
     addSectionTitle("Party Details");
+    const partyRows: Array<[string, unknown, string, unknown]> = [
+      ["Name", displayData.customer_name, "Party Date", formatDateDDMMYYYY(displayData.party_date)],
+      ["Party Start Time", formatTime(displayData.party_time), "Party End Time", formatTime(displayData.party_end_time)],
+      ["Venue", displayData.venue_type, "Food Type", displayData.food_type],
+      ["Spicy Level", displayData.spicy_level, "Occasion", displayData.occasion],
+      ["No. of Guests", displayData.guests, "No. of Jain People", displayData.jain_members],
+    ];
+    const partyCardHeight = 6 + partyRows.length * 7.4;
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(223, 227, 235);
-    doc.roundedRect(margin, y, contentWidth, 36, 2, 2, "FD");
+    doc.roundedRect(margin, y, contentWidth, partyCardHeight, 2, 2, "FD");
     y += 6;
-    addGridRow("Name", displayData.customer_name, "Party Date", formatDateDDMMYYYY(displayData.party_date));
-    addGridRow("Party Start Time", formatTime(displayData.party_time), "Party End Time", formatTime(displayData.party_end_time));
-    addGridRow("Venue", displayData.venue_type, "Food Type", displayData.food_type);
-    addGridRow("Spicy Level", displayData.spicy_level, "Occasion", displayData.occasion);
+    partyRows.forEach(([leftLabel, leftValue, rightLabel, rightValue]) => {
+      addGridRow(leftLabel, leftValue, rightLabel, rightValue);
+    });
     y += 1.5;
 
     addSectionTitle("Food Timing & DJ Details");
