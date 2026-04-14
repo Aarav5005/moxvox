@@ -423,6 +423,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
 
     const cleanedData: BookingPayload = {
       ...formData,
+      customer_name: formData.customer_name.trim().toUpperCase(),
       menu_items: selectedItems,
       date_of_birth: formData.date_of_birth || null,
       anniversary: formData.anniversary || null,

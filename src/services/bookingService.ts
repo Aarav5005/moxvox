@@ -1,6 +1,25 @@
 import { supabase } from "./supabaseClient";
 import { Booking, BookingPayload } from "@/types/booking";
 
+function normalizeCustomerName(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().toUpperCase();
+}
+
+function withNormalizedCustomerName<T extends Record<string, unknown>>(data: T): T {
+  if (typeof data.customer_name !== "string") {
+    return data;
+  }
+
+  return {
+    ...data,
+    customer_name: normalizeCustomerName(data.customer_name),
+  } as T;
+}
+
 function normalizeMenuItems(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.map((item) => String(item).trim()).filter(Boolean);
@@ -85,6 +104,7 @@ function normalizeBookingRow(row: Booking): Booking {
 
   return {
     ...row,
+    customer_name: normalizeCustomerName(row.customer_name),
     party_end_time: rowWithDefaults.party_end_time ?? null,
     starter_required: rowWithDefaults.starter_required || "No",
     maincourse_required: rowWithDefaults.maincourse_required || "No",
@@ -206,7 +226,9 @@ export async function getBookings() {
 }
 
 export async function createBooking(data: BookingPayload) {
-  let payload: BookingPayload | Record<string, unknown> = sanitizePayload({ ...data });
+  let payload: BookingPayload | Record<string, unknown> = sanitizePayload(
+    withNormalizedCustomerName({ ...data })
+  );
 
   // Allow enough retries to drop many missing columns from newer UI payloads.
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -252,7 +274,9 @@ export async function updateBooking(booking: Booking, data: Partial<BookingPaylo
     };
   }
 
-  let payload: Partial<BookingPayload> | Record<string, unknown> = sanitizePayload({ ...data });
+  let payload: Partial<BookingPayload> | Record<string, unknown> = sanitizePayload(
+    withNormalizedCustomerName({ ...data })
+  );
 
   // Allow enough retries to drop many missing columns from newer UI payloads.
   for (let attempt = 0; attempt < 30; attempt += 1) {
