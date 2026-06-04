@@ -121,17 +121,6 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     const longLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
     
     shortLink = longLink;
-    try {
-      const shortenerRes = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longLink)}`);
-      if (shortenerRes.ok) {
-        const text = (await shortenerRes.text()).trim();
-        if (text.startsWith("http")) {
-          shortLink = text;
-        }
-      }
-    } catch (e) {
-      console.error("shortener failed:", e);
-    }
   }
   if (!apiKey || !apiUrl) {
     return json(500, { success: false, error: "Missing GreenTick API configuration." });
