@@ -112,7 +112,12 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
   const apiUrl = String(context.env.GREENTICK_API_URL || "").trim();
   const fromNumber = String(context.env.WHATSAPP_FROM_NUMBER || "").trim();
   const templateName = String(context.env.WHATSAPP_TEMPLATE_NAME || "").trim();
-  const termsLink = String(context.env.TERMS_LINK || "https://www.mox-vox.online/terms.html").trim();
+  const menuItems = Array.isArray(payload.menu_items) ? payload.menu_items : [];
+  let dynamicLink = String(context.env.TERMS_LINK || "https://www.mox-vox.online/terms.html").trim();
+  if (menuItems.length > 0) {
+    const encodedItems = encodeURIComponent(menuItems.join("|"));
+    dynamicLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
+  }
 
   if (!apiKey || !apiUrl) {
     return json(500, { success: false, error: "Missing GreenTick API configuration." });
@@ -122,7 +127,7 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     return json(500, { success: false, error: "Missing WhatsApp template configuration." });
   }
 
-  const templateParams = [name, date, partyTime, starterTime, mainCourseTime, djTime, termsLink];
+  const templateParams = [name, date, partyTime, starterTime, mainCourseTime, djTime, dynamicLink];
 
   const requestBody = {
     from: fromNumber,
@@ -162,4 +167,14 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     const message = error instanceof Error ? error.message : "WhatsApp send failed";
     return json(500, { success: false, error: message });
   }
+};
+details: responseText || "No response body",
+      });
+    }
+
+return json(200, { success: true });
+  } catch (error: unknown) {
+  const message = error instanceof Error ? error.message : "WhatsApp send failed";
+  return json(500, { success: false, error: message });
+}
 };

@@ -456,6 +456,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
         starter_time: cleanedData.starter_time,
         main_course_time: cleanedData.maincourse_time,
         dj_time: cleanedData.dj_time,
+        menu_items: cleanedData.menu_items,
       }),
     })
       .then(async (response) => {
@@ -728,7 +729,7 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                     <label className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4d986]">
                       <input
                         type="checkbox"
-                          checked={isJainMembersEnabled}
+                        checked={isJainMembersEnabled}
                         onChange={(event) => handleJainMembersToggle(event.target.checked)}
                         className="h-4 w-4 accent-[#D4AF37]"
                       />
@@ -1436,8 +1437,8 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                         onClick={() => setSelectedCategory(category)}
                         whileTap={{ scale: 0.97 }}
                         className={`shrink-0 text-left text-sm font-semibold transition duration-300 ${isActive
-                            ? "text-[#D4AF37] drop-shadow-[0_0_10px_rgba(212,175,55,0.45)]"
-                            : "text-[#D4AF37CC] hover:text-[#D4AF37]"
+                          ? "text-[#D4AF37] drop-shadow-[0_0_10px_rgba(212,175,55,0.45)]"
+                          : "text-[#D4AF37CC] hover:text-[#D4AF37]"
                           }`}
                       >
                         {category}
@@ -1465,8 +1466,8 @@ export default function BookingForm({ onSubmitBooking, onLogout, isLoggingOut = 
                           onClick={() => toggleMenuItem(item)}
                           whileTap={{ scale: 0.97 }}
                           className={`rounded-xl border px-3 py-2 text-left text-sm transition duration-250 ${isSelected
-                              ? "border-[#D4AF37] bg-[#D4AF371A] text-[#F0D981] shadow-[0_0_16px_rgba(212,175,55,0.24)] scale-[1.01]"
-                              : "border-white/10 bg-[#111111] text-white/80 hover:border-[#D4AF3760] hover:text-white"
+                            ? "border-[#D4AF37] bg-[#D4AF371A] text-[#F0D981] shadow-[0_0_16px_rgba(212,175,55,0.24)] scale-[1.01]"
+                            : "border-white/10 bg-[#111111] text-white/80 hover:border-[#D4AF3760] hover:text-white"
                             }`}
                         >
                           {item}

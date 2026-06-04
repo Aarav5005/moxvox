@@ -56,7 +56,7 @@ const packages: PackageItem[] = [
   {
     icon: <Users className="w-8 h-8" />,
     title: "Grand Affair",
-    price: "₹479 + GST",
+    price: "₹579 + GST",
     type: "per person",
     minPax: "Designed for grand celebrations and special occasions",
     whatsappMessage: "Hi%2C%20I%E2%80%99m%20interested%20in%20booking%20Grand%20Affair%20package%20at%20Mox%20Vox.%20Please%20share%20more%20information.",
@@ -89,7 +89,7 @@ const packages: PackageItem[] = [
     features: [
       "Fixed package",
       "Welcome Drinks",
-      "3 Starters",
+      "2 Starters",
       "1 Special Starter",
       "1 Paneer Preparation",
       "1 Veg Preparation",

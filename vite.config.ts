@@ -371,52 +371,27 @@ function sendWhatsAppApiPlugin() {
 
   const formatDateToDdmmyyyy = (dateValue: string): string => {
     const trimmed = String(dateValue || "").trim();
-
-    if (!trimmed || trimmed === "N/A") {
-      return "N/A";
-    }
-
+    if (!trimmed || trimmed === "N/A") return "N/A";
     const parts = trimmed.split("-");
-    if (parts.length !== 3) {
-      return trimmed;
-    }
-
+    if (parts.length !== 3) return trimmed;
     const [year, month, day] = parts;
-    if (!year || !month || !day) {
-      return trimmed;
-    }
-
+    if (!year || !month || !day) return trimmed;
     return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
   };
 
   const formatTimeTo12Hour = (timeValue: string): string => {
     const trimmed = String(timeValue || "").trim();
-
-    if (!trimmed || trimmed === "N/A") {
-      return "N/A";
-    }
-
+    if (!trimmed || trimmed === "N/A") return "N/A";
     const upper = trimmed.toUpperCase();
-    if (upper.includes("AM") || upper.includes("PM")) {
-      return trimmed;
-    }
-
+    if (upper.includes("AM") || upper.includes("PM")) return trimmed;
     const parts = trimmed.split(":");
-    if (parts.length < 2) {
-      return trimmed;
-    }
-
+    if (parts.length < 2) return trimmed;
     const hours = Number(parts[0]);
     const minutes = Number(parts[1]);
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-      return trimmed;
-    }
-
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return trimmed;
     const period = hours >= 12 ? "PM" : "AM";
     const displayHours = hours % 12 || 12;
     const displayMinutes = String(minutes).padStart(2, "0");
-
     return `${displayHours}:${displayMinutes} ${period}`;
   };
 
@@ -437,8 +412,6 @@ function sendWhatsAppApiPlugin() {
       try {
         const parsed = body ? JSON.parse(body) : {};
         const phone = parsed?.phone;
-        const message = parsed?.message;
-
         const name = parsed?.name;
         const date = parsed?.date;
         const partyTime = parsed?.party_time;
@@ -447,7 +420,12 @@ function sendWhatsAppApiPlugin() {
         const mainCourseTime = parsed?.main_course_time;
         const djTime = parsed?.dj_time;
 
-        const termsLink = process.env.TERMS_LINK || "https://www.mox-vox.online/terms.html";
+        const menuItems = Array.isArray(parsed?.menu_items) ? parsed.menu_items : [];
+        let dynamicLink = process.env.TERMS_LINK || "https://www.mox-vox.online/terms.html";
+        if (menuItems.length > 0) {
+          const encodedItems = encodeURIComponent(menuItems.join("|"));
+          dynamicLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
+        }
 
         const formattedPartyStart = formatTimeTo12Hour(String(partyTime || "N/A"));
         const formattedPartyEnd = formatTimeTo12Hour(String(partyEndTime || "N/A"));
@@ -462,12 +440,13 @@ function sendWhatsAppApiPlugin() {
           formatTimeTo12Hour(String(starterTime || "N/A")),
           formatTimeTo12Hour(String(mainCourseTime || "N/A")),
           formatTimeTo12Hour(String(djTime || "N/A")),
-          termsLink
+          dynamicLink
         ];
 
         console.log("\n===================================");
         console.log("[Route Debug] Incoming POST to /api/send-whatsapp");
         console.log("[Route Debug] Payload:", JSON.stringify(parsed));
+        console.log("[Route Debug] Dynamic Link:", dynamicLink);
 
         if (!phone) {
           console.error("[Route Debug] No phone number provided in payload");
@@ -489,7 +468,7 @@ function sendWhatsAppApiPlugin() {
         console.error("\n===================================");
         console.error("[Route Debug] WhatsApp API error caught in route:");
         console.error(message);
-        
+
         res.statusCode = 500;
         res.setHeader("Content-Type", "application/json");
         res.end(
