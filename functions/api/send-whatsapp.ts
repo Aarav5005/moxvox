@@ -1,5 +1,5 @@
 import { json, readJson, type RequestContext } from "./_shared";
-import { MENU_DICTIONARY } from "../src/lib/menuDictionary";
+import { MENU_DICTIONARY } from "../../src/lib/menuDictionary";
 
 function formatIndianPhone(phone: string): string {
   const digits = String(phone || "").replace(/\D/g, "");
