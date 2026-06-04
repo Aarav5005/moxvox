@@ -459,7 +459,8 @@ function sendWhatsAppApiPlugin() {
         console.log("\n===================================");
         console.log("[Route Debug] Incoming POST to /api/send-whatsapp");
         console.log("[Route Debug] Payload:", JSON.stringify(parsed));
-        console.log("[Route Debug] Dynamic Link:", dynamicLink);
+        console.log("[Route Debug] Terms Link:", termsLink);
+        console.log("[Route Debug] Menu Link:", shortLink);
 
         if (!phone) {
           console.error("[Route Debug] No phone number provided in payload");
