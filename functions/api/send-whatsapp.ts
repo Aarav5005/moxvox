@@ -114,11 +114,24 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
   const templateName = String(context.env.WHATSAPP_TEMPLATE_NAME || "").trim();
   const menuItems = Array.isArray(payload.menu_items) ? payload.menu_items : [];
   let dynamicLink = String(context.env.TERMS_LINK || "https://www.mox-vox.online/terms.html").trim();
+  const termsLink = dynamicLink;
+
   if (menuItems.length > 0) {
     const encodedItems = encodeURIComponent(menuItems.join("|"));
-    dynamicLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
-  }
+    const longLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
+    
+    let shortLink = longLink;
+    try {
+      const shortenerRes = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longLink)}`);
+      if (shortenerRes.ok) {
+        shortLink = (await shortenerRes.text()).trim();
+      }
+    } catch (e) {
+      console.error("is.gd shortener failed:", e);
+    }
 
+    dynamicLink = `${termsLink}\n\nMenu Selected\n${shortLink}`;
+  }
   if (!apiKey || !apiUrl) {
     return json(500, { success: false, error: "Missing GreenTick API configuration." });
   }
