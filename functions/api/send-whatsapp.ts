@@ -113,14 +113,14 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
   const fromNumber = String(context.env.WHATSAPP_FROM_NUMBER || "").trim();
   const templateName = String(context.env.WHATSAPP_TEMPLATE_NAME || "").trim();
   const menuItems = Array.isArray(payload.menu_items) ? payload.menu_items : [];
-  let dynamicLink = String(context.env.TERMS_LINK || "https://www.mox-vox.online/terms.html").trim();
-  const termsLink = dynamicLink;
+  const termsLink = String(context.env.TERMS_LINK || "https://www.mox-vox.online/terms.html").trim();
+  let shortLink = "None";
 
   if (menuItems.length > 0) {
     const encodedItems = encodeURIComponent(menuItems.join("|"));
     const longLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
     
-    let shortLink = longLink;
+    shortLink = longLink;
     try {
       const shortenerRes = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longLink)}`);
       if (shortenerRes.ok) {
@@ -129,8 +129,6 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     } catch (e) {
       console.error("is.gd shortener failed:", e);
     }
-
-    dynamicLink = `${termsLink} | Menu: ${shortLink}`;
   }
   if (!apiKey || !apiUrl) {
     return json(500, { success: false, error: "Missing GreenTick API configuration." });
@@ -140,7 +138,7 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     return json(500, { success: false, error: "Missing WhatsApp template configuration." });
   }
 
-  const templateParams = [name, date, partyTime, starterTime, mainCourseTime, djTime, dynamicLink];
+  const templateParams = [name, date, partyTime, starterTime, mainCourseTime, djTime, termsLink, shortLink];
 
   const requestBody = {
     from: fromNumber,

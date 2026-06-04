@@ -421,14 +421,14 @@ function sendWhatsAppApiPlugin() {
         const djTime = parsed?.dj_time;
 
         const menuItems = Array.isArray(parsed?.menu_items) ? parsed.menu_items : [];
-        let dynamicLink = process.env.TERMS_LINK || "https://www.mox-vox.online/terms.html";
-        const termsLink = dynamicLink;
+        const termsLink = process.env.TERMS_LINK || "https://www.mox-vox.online/terms.html";
+        let shortLink = "None";
 
         if (menuItems.length > 0) {
           const encodedItems = encodeURIComponent(menuItems.join("|"));
           const longLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
           
-          let shortLink = longLink;
+          shortLink = longLink;
           try {
             const shortenerRes = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longLink)}`);
             if (shortenerRes.ok) {
@@ -437,8 +437,6 @@ function sendWhatsAppApiPlugin() {
           } catch (e) {
             console.error("is.gd shortener failed:", e);
           }
-
-          dynamicLink = `${termsLink} | Menu: ${shortLink}`;
         }
 
         const formattedPartyStart = formatTimeTo12Hour(String(partyTime || "N/A"));
@@ -454,7 +452,8 @@ function sendWhatsAppApiPlugin() {
           formatTimeTo12Hour(String(starterTime || "N/A")),
           formatTimeTo12Hour(String(mainCourseTime || "N/A")),
           formatTimeTo12Hour(String(djTime || "N/A")),
-          dynamicLink
+          termsLink,
+          shortLink
         ];
 
         console.log("\n===================================");
