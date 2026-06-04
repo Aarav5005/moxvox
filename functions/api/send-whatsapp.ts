@@ -130,7 +130,7 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
       console.error("is.gd shortener failed:", e);
     }
 
-    dynamicLink = `${termsLink}\n\nMenu Selected\n${shortLink}`;
+    dynamicLink = `${termsLink} | Menu: ${shortLink}`;
   }
   if (!apiKey || !apiUrl) {
     return json(500, { success: false, error: "Missing GreenTick API configuration." });

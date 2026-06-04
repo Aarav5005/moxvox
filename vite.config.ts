@@ -438,7 +438,7 @@ function sendWhatsAppApiPlugin() {
             console.error("is.gd shortener failed:", e);
           }
 
-          dynamicLink = `${termsLink}\n\nMenu Selected\n${shortLink}`;
+          dynamicLink = `${termsLink} | Menu: ${shortLink}`;
         }
 
         const formattedPartyStart = formatTimeTo12Hour(String(partyTime || "N/A"));
