@@ -430,12 +430,15 @@ function sendWhatsAppApiPlugin() {
           
           shortLink = longLink;
           try {
-            const shortenerRes = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longLink)}`);
+            const shortenerRes = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longLink)}`);
             if (shortenerRes.ok) {
-              shortLink = (await shortenerRes.text()).trim();
+              const text = (await shortenerRes.text()).trim();
+              if (text.startsWith("http")) {
+                shortLink = text;
+              }
             }
           } catch (e) {
-            console.error("is.gd shortener failed:", e);
+            console.error("shortener failed:", e);
           }
         }
 
