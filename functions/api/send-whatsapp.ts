@@ -168,13 +168,3 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     return json(500, { success: false, error: message });
   }
 };
-details: responseText || "No response body",
-      });
-    }
-
-return json(200, { success: true });
-  } catch (error: unknown) {
-  const message = error instanceof Error ? error.message : "WhatsApp send failed";
-  return json(500, { success: false, error: message });
-}
-};
