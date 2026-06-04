@@ -79,22 +79,36 @@
         <ul class="menu-list" id="menuList"></ul>
         <p class="empty-msg" id="emptyMsg" style="display:none;">No menu items found.</p>
     </div>
+    <script src="/menuDictionary.js"></script>
     <script>
         var params = new URLSearchParams(window.location.search);
         var items = params.get("items");
+        var encodedIds = params.get("i");
         var list = document.getElementById("menuList");
         var emptyMsg = document.getElementById("emptyMsg");
-        if (items) {
-            var decoded = decodeURIComponent(items);
-            var arr = decoded.split("|").filter(function(s) { return s.trim() !== ""; });
-            if (arr.length > 0) {
-                for (var i = 0; i < arr.length; i++) {
-                    var li = document.createElement("li");
-                    li.textContent = arr[i];
-                    list.appendChild(li);
+        var arr = [];
+
+        if (encodedIds && window.MENU_DICTIONARY) {
+            var ids = encodedIds.split("-");
+            for (var j = 0; j < ids.length; j++) {
+                var val = ids[j];
+                var idx = parseInt(val, 36);
+                if (idx.toString(36) === val && idx >= 0 && idx < window.MENU_DICTIONARY.length) {
+                    arr.push(window.MENU_DICTIONARY[idx]);
+                } else {
+                    arr.push(decodeURIComponent(val));
                 }
-            } else {
-                emptyMsg.style.display = "block";
+            }
+        } else if (items) {
+            var decoded = decodeURIComponent(items);
+            arr = decoded.split("|").filter(function(s) { return s.trim() !== ""; });
+        }
+
+        if (arr.length > 0) {
+            for (var i = 0; i < arr.length; i++) {
+                var li = document.createElement("li");
+                li.textContent = arr[i];
+                list.appendChild(li);
             }
         } else {
             emptyMsg.style.display = "block";

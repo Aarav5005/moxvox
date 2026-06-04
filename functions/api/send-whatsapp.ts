@@ -1,4 +1,5 @@
 import { json, readJson, type RequestContext } from "./_shared";
+import { MENU_DICTIONARY } from "../src/lib/menuDictionary";
 
 function formatIndianPhone(phone: string): string {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -117,8 +118,12 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
   let shortLink = "None";
 
   if (menuItems.length > 0) {
-    const encodedItems = encodeURIComponent(menuItems.join("|"));
-    const longLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
+    const ids = menuItems.map(item => {
+      const idx = MENU_DICTIONARY.indexOf(item);
+      return idx !== -1 ? idx.toString(36) : encodeURIComponent(item);
+    });
+    const encodedItems = ids.join("-");
+    const longLink = `https://www.mox-vox.online/menu.html?i=${encodedItems}`;
     
     shortLink = longLink;
   }

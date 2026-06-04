@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { configureWhatsApp, sendWhatsApp } from "./server/sendWhatsApp";
+import { MENU_DICTIONARY } from "./src/lib/menuDictionary";
 
 function loadDotEnvOnly() {
   const envPath = path.resolve(process.cwd(), ".env");
@@ -425,8 +426,12 @@ function sendWhatsAppApiPlugin() {
         let shortLink = "None";
 
         if (menuItems.length > 0) {
-          const encodedItems = encodeURIComponent(menuItems.join("|"));
-          const longLink = `https://www.mox-vox.online/menu.html?items=${encodedItems}`;
+          const ids = menuItems.map((item: string) => {
+            const idx = MENU_DICTIONARY.indexOf(item);
+            return idx !== -1 ? idx.toString(36) : encodeURIComponent(item);
+          });
+          const encodedItems = ids.join("-");
+          const longLink = `https://www.mox-vox.online/menu.html?i=${encodedItems}`;
           
           shortLink = longLink;
         }
